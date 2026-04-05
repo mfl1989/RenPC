@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: recycle-backend
+  jackson:
+    time-zone: Asia/Tokyo
+  # DB 接続に失敗すると Flyway が動かずアプリ全体が起動しない（/api も利用不可）。
+  # 既定のユーザー recycle / DB recycle はリポジトリ直下の docker compose で作成できる。
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/recycle}
+    username: ${DATABASE_USERNAME:recycle}
+    password: ${DATABASE_PASSWORD:recycle}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Tokyo

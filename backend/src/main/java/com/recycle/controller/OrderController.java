@@ -1,0 +1,43 @@
+package com.recycle.controller;
+
+import com.recycle.common.ApiResponse;
+import com.recycle.dto.OrderListPageDTO;
+import com.recycle.dto.OrderSubmitRequestDTO;
+import com.recycle.dto.OrderSubmitResponseDTO;
+import com.recycle.service.OrderService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 回収申込 API および管理向け注文一覧。
+ */
+@RestController
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @PostMapping("/api/orders")
+    public ApiResponse<OrderSubmitResponseDTO> submit(@Valid @RequestBody OrderSubmitRequestDTO body) {
+        OrderSubmitResponseDTO data = orderService.submitOrder(body);
+        return ApiResponse.ok("成功", data);
+    }
+
+    /**
+     * 管理画面：注文一覧（ページネーション）。認証は未導入のため当面オープン。
+     */
+    @GetMapping("/api/admin/orders")
+    public ApiResponse<OrderListPageDTO> listAdminOrders(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        OrderListPageDTO data = orderService.getAdminOrderList(pageable);
+        return ApiResponse.ok("成功", data);
+    }
+}

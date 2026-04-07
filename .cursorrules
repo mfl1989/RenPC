@@ -4,7 +4,7 @@
 
 # 1. 核心技術スタック (Tech Stack)
 - Backend: Java 17+, Spring Boot 3.x, Spring Data JPA, PostgreSQL, Flyway
-- Frontend: React, TypeScript, Tailwind CSS
+- Frontend: React, TypeScript, Tailwind CSS, Vite
 - Build Tool: Gradle
 - Utilities: Lombok, MapStruct
 
@@ -22,6 +22,9 @@
 - バリデーション: Bean Validation (JSR 380 / jakarta.validation) を使用してDTOの入力チェックを行い、エラーは統一的にキャッチして日本語のメッセージを返すこと。
 - ページネーション: 全てのリスト取得APIはページネーションをサポートし、Spring Dataの `Pageable` を使用。レスポンスには `content`, `totalPages`, `totalElements` などの標準フィールドを含めること。
 - セキュリティ: パスワードや個人情報などの機密情報は絶対に平文で保存しないこと。
+- 共通ユーティリティ (Utility) の利用強制 🌟: 
+  - 日付処理、文字列操作、金額計算などの一般的な処理を実装する際は、インラインで直接記述せず、必ず `com.recycle.util` 配下の既存のクラス（例: `DateUtil`）を使用すること。
+  - 既存のメソッドが存在しない場合は、まず `util` パッケージ内に共通メソッドを作成し、それを呼び出す設計にすること。コードの重複（DRY原則違反）を固く禁ずる。
 
 # 4. データベース規範 (Database Policy)
 - 命名規則: テーブル名とカラム名は `snake_case`（小文字＋アンダースコア）を使用。

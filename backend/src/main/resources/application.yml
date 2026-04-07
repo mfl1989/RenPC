@@ -23,3 +23,15 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Tokyo
+
+# JWT 設定（MVP: HS256）
+jwt:
+  # ここでは「十分に長い秘密文字列」を raw 文字列として扱います（Base64 ではない前提）。
+  secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-change-me-change-me}
+  # 有効期限（ミリ秒）。86400000 = 24時間
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+
+# MVP: 管理者資格情報（開発用の一時的設定）
+admin:
+  username: ${ADMIN_USERNAME:admin}
+  password: ${ADMIN_PASSWORD:admin}

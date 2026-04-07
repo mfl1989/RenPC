@@ -1,5 +1,6 @@
-import axios from 'axios'
+import axios from '../../lib/axios'
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 
 const PAGE_SIZE = 20
 
@@ -66,6 +67,7 @@ function formatYen(amount: number): string {
 }
 
 export default function AdminOrderList() {
+  const { logout } = useAuth()
   const [page, setPage] = useState(0)
   const [rows, setRows] = useState<OrderListRow[]>([])
   const [totalPages, setTotalPages] = useState(0)
@@ -106,6 +108,11 @@ export default function AdminOrderList() {
 
   const canPrev = page > 0 && !loading
   const canNext = totalPages > 0 && page < totalPages - 1 && !loading
+  const handleLogout = () => {
+    if (window.confirm('本当にログアウトしますか？')) {
+      logout()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -115,6 +122,15 @@ export default function AdminOrderList() {
             <h1 className="text-lg font-semibold tracking-tight text-slate-900">注文一覧</h1>
             <p className="text-sm text-slate-500">管理画面 · 回収申込</p>
           </div>
+          <nav className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              ログアウト
+            </button>
+          </nav>
         </div>
       </header>
 

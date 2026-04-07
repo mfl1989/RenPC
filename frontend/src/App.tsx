@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AdminOrderList from './pages/admin/AdminOrderList.tsx'
+import AdminLogin from './pages/admin/AdminLogin.tsx'
+import ProtectedRoute from './components/ProtectedRoute.tsx'
 import LandingPage from './pages/LandingPage.tsx'
 import ApplyLayout from './pages/apply/ApplyLayout.tsx'
 import Step1Items from './pages/apply/Step1Items.tsx'
@@ -20,7 +22,11 @@ export default function App() {
         <Route path="step4" element={<Step4Confirm />} />
         <Route path="complete" element={<ApplyComplete />} />
       </Route>
-      <Route path="/admin/orders" element={<AdminOrderList />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<ProtectedRoute />}>
+        <Route path="orders" element={<AdminOrderList />} />
+        <Route path="*" element={<Navigate to="/admin/orders" replace />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

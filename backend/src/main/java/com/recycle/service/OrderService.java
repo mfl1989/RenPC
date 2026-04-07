@@ -2,6 +2,7 @@ package com.recycle.service;
 
 import com.recycle.dto.OrderListPageDTO;
 import com.recycle.dto.OrderListResponseDTO;
+import com.recycle.dto.OrderStatusUpdateRequestDTO;
 import com.recycle.dto.OrderSubmitRequestDTO;
 import com.recycle.dto.OrderSubmitResponseDTO;
 import com.recycle.entity.RecycleOrder;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,6 +95,32 @@ public class OrderService {
                 .build();
     }
 
+    /**
+     * 管理画面用：注文ステータス更新。
+     * 楽観的ロック（version）と状態逆行禁止ルールを適用する。
+     */
+    @Transactional
+    public void updateAdminOrderStatus(Long orderId, OrderStatusUpdateRequestDTO dto) {
+        RecycleOrder order =
+                recycleOrderRepository
+                        .findById(orderId)
+                        .orElseThrow(() -> new IllegalArgumentException("指定された注文が存在しません"));
+
+        if (dto.getVersion() == null || !dto.getVersion().equals(order.getVersion())) {
+            throw new ObjectOptimisticLockingFailureException(RecycleOrder.class, orderId);
+        }
+
+        OrderStatus nextStatus = parseStatus(dto.getStatus());
+        OrderStatus currentStatus = order.getOrderStatus();
+
+        if (!isValidStatusTransition(currentStatus, nextStatus)) {
+            throw new IllegalArgumentException("不正なステータス遷移です");
+        }
+
+        order.setOrderStatus(nextStatus);
+        recycleOrderRepository.save(order);
+    }
+
     private OrderListResponseDTO toOrderListResponse(RecycleOrder o) {
         Instant created = o.getCreatedAt();
         String createdAtStr =
@@ -117,9 +145,42 @@ public class OrderService {
         return TIME_SLOT_LABELS.getOrDefault(code, code);
     }
 
+    private static OrderStatus parseStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            throw new IllegalArgumentException("ステータスを指定してください");
+        }
+        try {
+            return OrderStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("ステータスの値が不正です");
+        }
+    }
+
+    /**
+     * docs/04_business_requirements.md:
+     * - 状態逆行は禁止
+     * - COMPLETED/CANCELLED は終端状態
+     */
+    private static boolean isValidStatusTransition(OrderStatus current, OrderStatus next) {
+        if (current == null || next == null) {
+            return false;
+        }
+        if (current == next) {
+            return true;
+        }
+        if (current == OrderStatus.COMPLETED || current == OrderStatus.CANCELLED) {
+            return false;
+        }
+        if (next == OrderStatus.CANCELLED) {
+            return true;
+        }
+        return next.ordinal() > current.ordinal();
+    }
+
     private User createUserFromDto(String email, OrderSubmitRequestDTO dto) {
         return User.builder()
                 .email(email)
+                .role("USER")
                 .passwordHash(passwordEncoder.encode(dto.getPassword()))
                 .name(trimToNull(dto.getCustomerNameKanji()))
                 .kana(trimToNull(dto.getCustomerNameKana()))

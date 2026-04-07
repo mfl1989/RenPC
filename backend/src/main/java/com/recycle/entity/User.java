@@ -69,6 +69,13 @@ public class User extends BaseAuditEntity {
     @Builder.Default
     private boolean identityVerified = false;
 
+    /**
+     * アプリ権限（例: USER, ADMIN）。DB は ROLE_ なしで保持し、UserDetails では ROLE_ を付与する。
+     */
+    @Column(name = "role", nullable = false, length = 32)
+    @Builder.Default
+    private String role = "USER";
+
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<RecycleOrder> recycleOrders = new ArrayList<>();

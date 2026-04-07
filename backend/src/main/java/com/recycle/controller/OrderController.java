@@ -2,6 +2,7 @@ package com.recycle.controller;
 
 import com.recycle.common.ApiResponse;
 import com.recycle.dto.OrderListPageDTO;
+import com.recycle.dto.OrderStatusUpdateRequestDTO;
 import com.recycle.dto.OrderSubmitRequestDTO;
 import com.recycle.dto.OrderSubmitResponseDTO;
 import com.recycle.service.OrderService;
@@ -11,7 +12,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,5 +42,16 @@ public class OrderController {
                     Pageable pageable) {
         OrderListPageDTO data = orderService.getAdminOrderList(pageable);
         return ApiResponse.ok("成功", data);
+    }
+
+    /**
+     * 管理画面：注文ステータス更新（楽観的ロック対応）。
+     */
+    @PutMapping("/api/admin/orders/{id}/status")
+    public ApiResponse<Void> updateAdminOrderStatus(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody OrderStatusUpdateRequestDTO body) {
+        orderService.updateAdminOrderStatus(id, body);
+        return ApiResponse.ok("成功", null);
     }
 }

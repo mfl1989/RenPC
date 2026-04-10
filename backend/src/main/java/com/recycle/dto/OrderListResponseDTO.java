@@ -15,6 +15,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderListResponseDTO {
 
+
+    /** 排他制御用のバージョン */
+
+    private Long version;
+    
+    /** 注文ID */
     private Long orderId;
 
     /** 申込時点の氏名（漢字） */

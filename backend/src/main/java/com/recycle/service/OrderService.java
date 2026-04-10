@@ -135,6 +135,7 @@ public class OrderService {
                 .orderStatus(o.getOrderStatus().name())
                 .totalAmount(o.getTotalAmount())
                 .createdAt(createdAtStr)
+                .version(o.getVersion())
                 .build();
     }
 

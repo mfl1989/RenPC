@@ -91,18 +91,14 @@ public class JwtUtils {
         return false;
     }
 
-    private SecretKey getSigningKey() {
-        if (jwtSecret == null || jwtSecret.isBlank()) {
-            throw new IllegalStateException("jwt.secret が未設定です");
-        }
-
-        byte[] keyBytes;
-        try {
-            keyBytes = Decoders.BASE64.decode(jwtSecret);
-        } catch (IllegalArgumentException ignored) {
-            keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        }
-        return Keys.hmacShaKeyFor(keyBytes);
+private SecretKey getSigningKey() {
+    byte[] keyBytes;
+    try {
+        keyBytes = Decoders.BASE64.decode(jwtSecret);
+    } catch (RuntimeException ignored) { 
+        keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
     }
+    return Keys.hmacShaKeyFor(keyBytes);
+}
 }
 

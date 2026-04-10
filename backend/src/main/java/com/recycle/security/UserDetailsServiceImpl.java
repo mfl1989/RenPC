@@ -18,6 +18,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final AdminAuthProperties adminAuthProperties;
+//    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -27,12 +28,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         String trimmed = email.trim();
 
-        // MVP: 設定ファイルの管理者 ID（ユーザー名）と一致する場合は DB に依存しない ADMIN
+       // MVP: 設定ファイルの管理者 ID（ユーザー名）と一致する場合は DB に依存しない ADMIN
         if (adminAuthProperties.getUsername() != null
                 && adminAuthProperties.getUsername().equals(trimmed)) {
+            
+            org.springframework.security.crypto.password.PasswordEncoder encoder = 
+                    new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+
+            
+            String safePassword = adminAuthProperties.getPassword() != null ? adminAuthProperties.getPassword() : "admin";
+
             return org.springframework.security.core.userdetails.User.builder()
                     .username(trimmed)
-                    .password("{noop}unused")
+                    .password(encoder.encode(safePassword)) 
                     .authorities("ROLE_ADMIN")
                     .accountExpired(false)
                     .accountLocked(false)

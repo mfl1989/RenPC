@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 管理者認証 API（MVP）。
- */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -21,9 +18,6 @@ public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
 
-    /**
-     * POST /api/admin/login
-     */
     @PostMapping("/login")
     public ApiResponse<AdminLoginResponseDTO> login(
             @Valid @RequestBody AdminLoginRequestDTO body) {
@@ -31,4 +25,3 @@ public class AdminAuthController {
         return ApiResponse.ok("成功", AdminLoginResponseDTO.builder().token(token).build());
     }
 }
-

@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { FieldPath } from 'react-hook-form'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
+import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import type { RecycleOrderFormValues } from '../../schemas/recycleOrderSchema.ts'
 import { recycleOrderStep3Schema } from '../../schemas/recycleOrderSchema.ts'
-import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import { lookupAddressByPostalCode } from '../../services/zipcloudSearch.ts'
 import { StepProgress } from './StepProgress.tsx'
 
@@ -86,31 +86,42 @@ export default function Step3Customer() {
   } = useFormContext<RecycleOrderFormValues>()
 
   const postalCode = useWatch({ name: 'postalCode' })
+  const postalCodeDigits = (postalCode ?? '').replace(/\D/g, '')
   const zipDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   )
+  const zipLookupRequestIdRef = useRef(0)
   const [zipLookupLoading, setZipLookupLoading] = useState(false)
   const [zipLookupHint, setZipLookupHint] = useState<{
+    postalCode: string
     variant: 'success' | 'error'
     text: string
   } | null>(null)
+
+  const activeZipLookupHint =
+    postalCodeDigits.length === 7 && zipLookupHint?.postalCode === postalCodeDigits
+      ? zipLookupHint
+      : null
 
   useEffect(() => {
     if (zipDebounceRef.current !== undefined) {
       clearTimeout(zipDebounceRef.current)
     }
-    setZipLookupHint(null)
 
-    const digits = (postalCode ?? '').replace(/\D/g, '')
-    if (digits.length !== 7) {
-      setZipLookupLoading(false)
+    const requestId = ++zipLookupRequestIdRef.current
+    if (postalCodeDigits.length !== 7) {
       return
     }
 
     zipDebounceRef.current = setTimeout(() => {
       void (async () => {
         setZipLookupLoading(true)
-        const result = await lookupAddressByPostalCode(digits)
+        const result = await lookupAddressByPostalCode(postalCodeDigits)
+
+        if (zipLookupRequestIdRef.current !== requestId) {
+          return
+        }
+
         setZipLookupLoading(false)
 
         if (result.ok) {
@@ -124,11 +135,13 @@ export default function Step3Customer() {
           })
           clearErrors(['prefecture', 'city'])
           setZipLookupHint({
+            postalCode: postalCodeDigits,
             variant: 'success',
             text: '住所を自動入力しました。番地・建物名をご確認ください。',
           })
         } else {
           setZipLookupHint({
+            postalCode: postalCodeDigits,
             variant: 'error',
             text: result.messageJa,
           })
@@ -141,7 +154,7 @@ export default function Step3Customer() {
         clearTimeout(zipDebounceRef.current)
       }
     }
-  }, [postalCode, setValue, clearErrors])
+  }, [postalCodeDigits, setValue, clearErrors])
 
   const onSubmit = handleSubmit((values) => {
     clearErrors()
@@ -231,26 +244,26 @@ export default function Step3Customer() {
                 aria-describedby={
                   errors.postalCode
                     ? 'step3-postalCode-error'
-                    : zipLookupHint
+                    : activeZipLookupHint
                       ? 'step3-postalCode-hint'
                       : undefined
                 }
                 {...register('postalCode')}
               />
-              {zipLookupLoading ? (
+              {zipLookupLoading && postalCodeDigits.length === 7 ? (
                 <p className="mt-2 text-sm text-slate-500">住所を検索しています…</p>
               ) : null}
-              {zipLookupHint ? (
+              {activeZipLookupHint ? (
                 <p
                   id="step3-postalCode-hint"
                   className={`mt-2 text-sm font-medium ${
-                    zipLookupHint.variant === 'success'
+                    activeZipLookupHint.variant === 'success'
                       ? 'text-emerald-700'
                       : 'text-red-600'
                   }`}
                   role="status"
                 >
-                  {zipLookupHint.text}
+                  {activeZipLookupHint.text}
                 </p>
               ) : null}
               {errors.postalCode?.message ? (

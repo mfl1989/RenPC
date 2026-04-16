@@ -20,7 +20,11 @@ frontend/.env.*
 # IDE
 .idea/
 *.iml
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
 *.swp
 
 # Logs & local env

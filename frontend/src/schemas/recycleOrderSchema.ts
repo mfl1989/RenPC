@@ -20,7 +20,7 @@ export const TIME_SLOT_OPTIONS = [
 export type TimeSlotOption = (typeof TIME_SLOT_OPTIONS)[number]
 
 /** 全角カタカナ（長音・中黒・全角スペースを許容） */
-const KATAKANA_REGEX = /^[ァ-ヶー・　\s]+$/u
+const KATAKANA_REGEX = /^[ァ-ヶー・\u3000\s]+$/u
 
 const itemCount = z.number().int().min(0).max(99)
 

@@ -1,5 +1,6 @@
 package com.recycle.service;
 
+import com.recycle.dto.OrderDetailResponseDTO;
 import com.recycle.dto.OrderListPageDTO;
 import com.recycle.dto.OrderListResponseDTO;
 import com.recycle.dto.OrderStatusUpdateRequestDTO;
@@ -8,6 +9,7 @@ import com.recycle.dto.OrderSubmitResponseDTO;
 import com.recycle.entity.RecycleOrder;
 import com.recycle.entity.User;
 import com.recycle.enums.OrderStatus;
+import com.recycle.exception.ResourceNotFoundException;
 import com.recycle.repository.RecycleOrderRepository;
 import com.recycle.repository.UserRepository;
 import java.time.Clock;
@@ -49,6 +51,16 @@ public class OrderService {
                     Map.entry("t14_16", "14時〜16時"),
                     Map.entry("t16_18", "16時〜18時"),
                     Map.entry("t18_21", "18時〜21時"));
+
+        private static final Map<OrderStatus, String> ORDER_STATUS_LABELS =
+            Map.ofEntries(
+                Map.entry(OrderStatus.RECEIVED, "受付済"),
+                Map.entry(OrderStatus.KIT_SHIPPED, "キット発送済"),
+                Map.entry(OrderStatus.COLLECTING, "回収中"),
+                Map.entry(OrderStatus.ARRIVED, "到着済"),
+                Map.entry(OrderStatus.PROCESSING, "処理中"),
+                Map.entry(OrderStatus.COMPLETED, "完了"),
+                Map.entry(OrderStatus.CANCELLED, "キャンセル"));
 
     private final UserRepository userRepository;
     private final RecycleOrderRepository recycleOrderRepository;
@@ -144,6 +156,13 @@ public class OrderService {
             return "";
         }
         return TIME_SLOT_LABELS.getOrDefault(code, code);
+    }
+
+    private static String formatOrderStatus(OrderStatus status) {
+        if (status == null) {
+            return "";
+        }
+        return ORDER_STATUS_LABELS.getOrDefault(status, status.name());
     }
 
     private static OrderStatus parseStatus(String rawStatus) {
@@ -263,4 +282,114 @@ public class OrderService {
         }
         return digits;
     }
+
+    /**
+     * 管理画面用：注文一覧。検索キーワード（ID, 氏名, 電話番号）に対応。
+     */
+    @Transactional(readOnly = true)
+    public OrderListPageDTO getAdminOrderList(String keyword, Pageable pageable) {
+        Page<RecycleOrder> page = searchAdminOrders(keyword, pageable);
+
+        List<OrderListResponseDTO> content =
+                page.getContent().stream().map(this::toOrderListResponse).toList();
+
+        return OrderListPageDTO.builder()
+                .content(content)
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .build();
+    }
+
+    /**
+     * 管理画面用：注文一覧を CSV 形式で返す。
+     */
+    @Transactional(readOnly = true)
+    public String exportOrdersToCsv(String keyword) {
+        List<RecycleOrder> orders = searchAdminOrders(keyword, Pageable.unpaged()).getContent();
+
+        StringBuilder csv = new StringBuilder();
+        csv.append('\ufeff');
+        csv.append("注文ID,氏名,電話番号,ステータス,金額,申込日時\n");
+
+        for (RecycleOrder order : orders) {
+            csv.append(csvCell(String.valueOf(order.getId()))).append(",");
+            csv.append(csvCell(order.getCustomerNameKanji())).append(",");
+            csv.append(csvCell(order.getPhone())).append(",");
+            csv.append(csvCell(formatOrderStatus(order.getOrderStatus()))).append(",");
+            csv.append(csvCell(String.valueOf(order.getTotalAmount()))).append(",");
+            csv.append(csvCell(formatCreatedAt(order.getCreatedAt()))).append("\n");
+        }
+
+        return csv.toString();
+    }
+
+    /**
+     * 管理画面用：単一注文の詳細を返す。
+     */
+    @Transactional(readOnly = true)
+    public OrderDetailResponseDTO getAdminOrderDetail(Long orderId) {
+        RecycleOrder order =
+                recycleOrderRepository
+                        .findById(orderId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "該当する注文が見つかりません。orderId=" + orderId));
+
+        return OrderDetailResponseDTO.builder()
+                .orderId(order.getId())
+                .orderStatus(formatOrderStatus(order.getOrderStatus()))
+                .collectionDate(order.getCollectionDate().format(COLLECTION_DATE_FORMAT))
+                .collectionTimeSlot(formatTimeSlot(order.getCollectionTimeSlot()))
+                .totalAmount(order.getTotalAmount())
+                .createdAt(formatCreatedAt(order.getCreatedAt()))
+                .pcCount(order.getPcCount())
+                .monitorCount(order.getMonitorCount())
+                .smallApplianceBoxCount(order.getSmallApplianceBoxCount())
+                .dataErasureOption(order.getDataErasureOption())
+                .cardboardDeliveryRequested(order.isCardboardDeliveryRequested())
+                .customerNameKanji(order.getCustomerNameKanji())
+                .customerNameKana(order.getCustomerNameKana())
+                .postalCode(order.getPostalCode())
+                .prefecture(order.getPrefecture())
+                .city(order.getCity())
+                .addressLine1(order.getAddressLine1())
+                .addressLine2(order.getAddressLine2())
+                .phone(order.getPhone())
+                .email(order.getEmail())
+                .build();
+    }
+
+    private Page<RecycleOrder> searchAdminOrders(String keyword, Pageable pageable) {
+        String trimmedKeyword = trimToNull(keyword);
+        String phoneKeyword = normalizeDigits(trimmedKeyword);
+        if (trimmedKeyword == null) {
+            return recycleOrderRepository.findAll(pageable);
+        }
+        return recycleOrderRepository.findAllWithKeyword(trimmedKeyword, phoneKeyword, pageable);
+    }
+
+    private static String normalizeDigits(String value) {
+        if (value == null) {
+            return "";
+        }
+        String digits = value.replaceAll("\\D", "");
+        return digits;
+    }
+
+    private static String formatCreatedAt(Instant createdAt) {
+        if (createdAt == null) {
+            return "";
+        }
+        return CREATED_AT_FORMAT.format(createdAt);
+    }
+
+    private static String csvCell(String value) {
+        if (value == null) {
+            return "\"\"";
+        }
+        String normalized = value.replace("\r\n", " ").replace("\n", " ").replace("\r", " ");
+        return "\"" + normalized.replace("\"", "\"\"") + "\"";
+    }
+
 }

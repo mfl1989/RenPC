@@ -1,6 +1,6 @@
-import axios from '../../lib/axios'
 import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/auth-context'
+import axios from '../../lib/axios'
 
 const PAGE_SIZE = 20
 
@@ -51,6 +51,7 @@ export default function AdminOrderList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [keyword, setKeyword] = useState("")
+  const [appliedKeyword, setAppliedKeyword] = useState("")
 
   // —— 【新增】弹窗相关状态 ——
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -66,9 +67,12 @@ export default function AdminOrderList() {
     } catch { setError('サーバーに接続できませんでした') } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { void load(page, keyword) }, [load, page])
+  useEffect(() => { void load(page, appliedKeyword) }, [appliedKeyword, load, page])
 
-  const handleSearch = () => { setPage(0); void load(0, keyword); }
+  const handleSearch = () => {
+    setAppliedKeyword(keyword)
+    setPage(0)
+  }
 
   const handleExportCsv = async () => {
     try {
@@ -76,6 +80,7 @@ export default function AdminOrderList() {
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `orders_export.csv`);
       document.body.appendChild(link); link.click(); link.remove();
+      window.URL.revokeObjectURL(url)
     } catch { alert('CSVの出力に失敗しました') }
   }
 
@@ -102,8 +107,8 @@ export default function AdminOrderList() {
     if (!window.confirm('ステータスを更新しますか？')) return
     try {
       await axios.put(`/api/admin/orders/${orderId}/status`, { status: newStatus, version: currentVersion })
-      void load(page, keyword)
-    } catch { alert('ステータスの更新に失败しました'); void load(page, keyword) }
+      void load(page, appliedKeyword)
+    } catch { alert('ステータスの更新に失敗しました'); void load(page, appliedKeyword) }
   }
 
   return (
@@ -136,8 +141,8 @@ export default function AdminOrderList() {
                   <th className="px-4 py-3 font-medium text-slate-600">氏名</th>
                   <th className="px-4 py-3 font-medium text-slate-600">電話</th>
                   <th className="px-4 py-3 font-medium text-slate-600 text-center">ステータス</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 text-right">金额</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 text-center">操作</th> {/* 👈 新增操作列 */}
+                  <th className="px-4 py-3 font-medium text-slate-600 text-right">金額</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 text-center">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -153,7 +158,6 @@ export default function AdminOrderList() {
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-800 font-medium">{formatYen(row.totalAmount)}</td>
                     <td className="px-4 py-3 text-center">
-                      {/* —— 【新增】详细按钮 —— */}
                       <button onClick={() => handleOpenDetail(row.orderId)} className="text-sky-600 hover:text-sky-800 font-medium px-2 py-1 bg-sky-50 rounded transition-colors">
                         詳細
                       </button>
@@ -173,11 +177,9 @@ export default function AdminOrderList() {
         </div>
       </main>
 
-      {/* —— 【新增】详情信息弹窗 (Modal) —— */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* 弹窗头部 */}
             <div className="flex justify-between items-center border-b px-6 py-4 bg-slate-50">
               <h3 className="text-lg font-bold text-slate-800">
                 {detailData ? `注文詳細 #${detailData.orderId}` : '読み込み中...'}
@@ -185,13 +187,11 @@ export default function AdminOrderList() {
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
             </div>
             
-            {/* 弹窗内容 (滚动区) */}
             <div className="p-6 overflow-y-auto flex-1 text-sm">
               {detailLoading ? (
                 <div className="text-center py-10 text-slate-500">データを取得しています...</div>
               ) : detailData ? (
                 <div className="space-y-6">
-                  {/* 客户与地址区块 */}
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <h4 className="font-bold text-slate-700 mb-3 border-b pb-2">お客様情報・回収先</h4>
                     <div className="grid grid-cols-2 gap-y-3 gap-x-4">
@@ -205,7 +205,6 @@ export default function AdminOrderList() {
                     </div>
                   </div>
 
-                  {/* 回收品目区块 */}
                   <div className="bg-sky-50 p-4 rounded-lg border border-sky-100">
                     <h4 className="font-bold text-sky-800 mb-3 border-b border-sky-200 pb-2">回収品目・オプション</h4>
                     <div className="grid grid-cols-2 gap-y-3 gap-x-4">
@@ -223,7 +222,6 @@ export default function AdminOrderList() {
               )}
             </div>
 
-            {/* 弹窗底部 */}
             <div className="border-t px-6 py-4 bg-slate-50 flex justify-end">
               <button onClick={() => setIsModalOpen(false)} className="bg-slate-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-slate-700 transition-colors">
                 閉じる

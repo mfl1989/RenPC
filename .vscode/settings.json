@@ -1,0 +1,35 @@
+{
+    "editor.formatOnSave": true,
+    "search.exclude": {
+        "**/backend/build": true,
+        "**/frontend/dist": true
+    },
+    "files.watcherExclude": {
+        "**/backend/build/**": true,
+        "**/frontend/dist/**": true
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[javascriptreact]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+        "source.organizeImports": "explicit"
+    },
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location \"c:\\\\Users\\\\EX-P-00941\\\\Documents\\\\RenPC\\\\RenPC\"; docker compose up -d$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    },
+    "java.compile.nullAnalysis.mode": "automatic"
+}

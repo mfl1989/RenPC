@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import axios, { isAxiosError } from 'axios'
+import { useCallback, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ADMIN_JWT_STORAGE_KEY } from '../lib/axios'
+import { AuthContext } from './auth-context'
 
 interface ApiEnvelope<T> {
   code: number
@@ -12,15 +13,6 @@ interface ApiEnvelope<T> {
 interface AdminLoginResponseDTO {
   token: string
 }
-
-type AuthContextValue = {
-  token: string | null
-  isAuthenticated: boolean
-  login: (username: string, password: string) => Promise<void>
-  logout: () => void
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 type AuthProviderProps = {
   children: React.ReactNode
@@ -87,13 +79,5 @@ export function AuthProvider({ children }: AuthProviderProps) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth は AuthProvider の配下で使用してください')
-  }
-  return ctx
 }
 

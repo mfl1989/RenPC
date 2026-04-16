@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Backend: Spring Boot",
+            "type": "java",
+            "request": "launch",
+            "mainClass": "com.recycle.RecycleApplication",
+            "projectName": "backend"
+        },
+        {
+            "name": "Frontend: Vite + Chrome",
+            "type": "pwa-chrome",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend",
+            "preLaunchTask": "frontend: dev"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack: Backend + Frontend",
+            "configurations": [
+                "Backend: Spring Boot",
+                "Frontend: Vite + Chrome"
+            ]
+        }
+    ]
+}

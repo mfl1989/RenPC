@@ -1,9 +1,9 @@
 import type { FieldPath } from 'react-hook-form'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
+import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import type { RecycleOrderFormValues } from '../../schemas/recycleOrderSchema.ts'
 import { recycleOrderStep2Schema } from '../../schemas/recycleOrderSchema.ts'
-import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import { StepProgress } from './StepProgress.tsx'
 
 export default function Step2Schedule() {
@@ -48,12 +48,12 @@ export default function Step2Schedule() {
       : 'border-slate-300 focus:border-orange-400 focus:ring-orange-200'
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 pt-8 font-sans text-slate-800">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
       <div className="mx-auto max-w-2xl px-4 md:px-6">
         <div className="mb-6 text-center">
           <Link
             to="/"
-            className="text-sm font-medium text-orange-600 hover:underline"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             ← トップへ戻る
           </Link>
@@ -143,7 +143,7 @@ export default function Step2Schedule() {
                 name="cardboardDeliveryRequested"
                 control={control}
                 render={({ field: { value, onChange, onBlur, name, ref } }) => (
-                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-orange-300">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 has-focus-visible:ring-2 has-focus-visible:ring-orange-300">
                     <input
                       ref={ref}
                       name={name}
@@ -171,13 +171,13 @@ export default function Step2Schedule() {
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex h-12 min-w-[8rem] items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700"
             >
               戻る
             </button>
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-orange-500 px-8 text-base font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              className="inline-flex h-12 items-center justify-center rounded-xl border-2 border-orange-300 bg-white px-8 text-base font-bold text-orange-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               次へ：お客様情報
             </button>

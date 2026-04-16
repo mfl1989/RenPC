@@ -3,21 +3,21 @@ import { useState } from 'react'
 import type { FieldPath } from 'react-hook-form'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  RecycleOrderSchema,
-  type DataErasureOption,
-  type RecycleOrderFormValues,
-  type TimeSlotOption,
-} from '../../schemas/recycleOrderSchema.ts'
 import { logValidatedRecycleOrderJa } from '../../lib/recycleOrderJapaneseLog.ts'
 import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
+import {
+    RecycleOrderSchema,
+    type DataErasureOption,
+    type RecycleOrderFormValues,
+    type TimeSlotOption,
+} from '../../schemas/recycleOrderSchema.ts'
 import { submitRecycleOrder } from '../../services/orderApi.ts'
 import { StepProgress } from './StepProgress.tsx'
 
 /** 確認画面用ラベル（値は Schema と同期） */
 const DATA_ERASURE_LABEL: Record<DataErasureOption, string> = {
-  self_erase_free: '自分でデータ消去する（無料）',
-  full_service_paid: 'おまかせデータ消去（有料）',
+  self_erase_free: 'ご自身で事前に消去する',
+  full_service_paid: 'おまかせ消去サービスを利用する',
 }
 
 const TIME_SLOT_LABEL: Record<TimeSlotOption, string> = {
@@ -136,12 +136,12 @@ export default function Step4Confirm() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 pt-8 font-sans text-slate-800">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-20 pt-8 font-sans text-slate-800">
       <div className="mx-auto max-w-2xl px-4 md:px-6">
         <div className="mb-6 text-center">
           <Link
             to="/"
-            className="text-sm font-medium text-orange-600 hover:underline"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             ← トップへ戻る
           </Link>
@@ -198,7 +198,7 @@ export default function Step4Confirm() {
             />
             <ConfirmRow
               anchorId="confirm-dataErasureOption"
-              label="データ消去"
+              label="データ消去方法"
               value={DATA_ERASURE_LABEL[v.dataErasureOption]}
               errorMessage={errors.dataErasureOption?.message}
             />
@@ -284,12 +284,6 @@ export default function Step4Confirm() {
               value={v.email}
               errorMessage={errors.email?.message}
             />
-            <ConfirmRow
-              anchorId="confirm-password"
-              label="パスワード"
-              value={v.password ? '********（非表示）' : ''}
-              errorMessage={errors.password?.message}
-            />
           </ConfirmSection>
 
           <section
@@ -334,14 +328,14 @@ export default function Step4Confirm() {
               type="button"
               onClick={goBack}
               disabled={submitting}
-              className="inline-flex h-12 min-w-[8rem] items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               戻る
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-14 min-h-[3.5rem] flex-1 items-center justify-center rounded-xl bg-orange-500 px-6 text-lg font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 disabled:cursor-not-allowed disabled:bg-orange-300"
+              className="inline-flex h-12 min-w-32 flex-1 items-center justify-center rounded-xl border-2 border-orange-300 bg-white px-6 text-base font-bold text-orange-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-orange-200 disabled:bg-orange-50 disabled:text-orange-300"
             >
               {submitting ? '送信中…' : 'この内容で申し込む'}
             </button>

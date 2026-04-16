@@ -1,6 +1,13 @@
 package com.recycle.entity;
 
+import java.time.Instant;
+import java.time.LocalDate;
+
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import com.recycle.enums.OrderStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,19 +17,15 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 /**
- * 回収申込注文。申込時点の連絡先・品目台数を保持（ユーザー変更後も履歴として参照可能）。
+ * 回収申込注文。申込時点の連絡先・品目台数を保持し、連絡先更新後も履歴として参照可能。
  */
 @Entity
 @Table(name = "recycle_orders")
@@ -30,18 +33,15 @@ import org.hibernate.annotations.SQLRestriction;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true, exclude = "user")
-@ToString(callSuper = true, exclude = "user")
+@EqualsAndHashCode(callSuper = true, exclude = "contact")
+@ToString(callSuper = true, exclude = "contact")
 @SQLDelete(sql = "UPDATE recycle_orders SET is_deleted = true WHERE id = ?")
 @SQLRestriction("is_deleted = false")
 public class RecycleOrder extends BaseAuditEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "user_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_recycle_orders_users"))
-    private User user;
+    @JoinColumn(name = "contact_id", nullable = false, foreignKey = @ForeignKey(name = "fk_recycle_orders_contacts"))
+    private Contact contact;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_status", nullable = false, length = 32)
@@ -101,4 +101,10 @@ public class RecycleOrder extends BaseAuditEntity {
 
     @Column(name = "email", nullable = false, length = 320)
     private String email;
+
+    @Column(name = "customer_note", length = 1000)
+    private String customerNote;
+
+    @Column(name = "internal_note", length = 1000)
+    private String internalNote;
 }

@@ -1,13 +1,13 @@
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  type DataErasureOption,
-  type RecycleOrderFormValues,
-  recycleOrderStep1Schema,
-  getBaseLogisticsFeeHint,
-  getDataErasureFeeYen,
-} from '../../schemas/recycleOrderSchema.ts'
 import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
+import {
+    type DataErasureOption,
+    getBaseLogisticsFeeHint,
+    getDataErasureFeeYen,
+    type RecycleOrderFormValues,
+    recycleOrderStep1Schema,
+} from '../../schemas/recycleOrderSchema.ts'
 import { StepProgress } from './StepProgress.tsx'
 
 function CountStepper({
@@ -29,38 +29,38 @@ function CountStepper({
   const inc = () => onChange(Math.min(99, value + 1))
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="min-w-0">
           <label
             htmlFor={id}
-            className="text-base font-bold text-slate-900 md:text-lg"
+            className="text-base font-bold leading-6 text-slate-900 md:text-lg"
           >
             {label}
           </label>
           {description ? (
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
           ) : null}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:min-w-49 md:justify-center">
           <button
             type="button"
             onClick={dec}
-            className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-300 bg-white text-xl font-bold text-slate-700 transition hover:border-orange-400 hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-300 bg-white text-xl font-bold text-slate-700 transition hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             aria-label={`${label}を減らす`}
           >
             −
           </button>
           <span
             id={id}
-            className="min-w-[2.5rem] text-center text-2xl font-bold tabular-nums text-slate-900"
+            className="min-w-14 text-center text-2xl font-bold tabular-nums text-slate-900"
           >
             {value}
           </span>
           <button
             type="button"
             onClick={inc}
-            className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-300 bg-white text-xl font-bold text-slate-700 transition hover:border-orange-400 hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-slate-300 bg-white text-xl font-bold text-slate-700 transition hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             aria-label={`${label}を増やす`}
           >
             ＋
@@ -109,12 +109,12 @@ export default function Step1Items() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 pt-8 font-sans text-slate-800">
-      <div className="mx-auto max-w-2xl px-4 md:px-6">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
+      <div className="mx-auto max-w-3xl px-4 md:px-6">
         <div className="mb-6 text-center">
           <Link
             to="/"
-            className="text-sm font-medium text-orange-600 hover:underline"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             ← トップへ戻る
           </Link>
@@ -126,86 +126,104 @@ export default function Step1Items() {
           <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
             回収品目の入力
           </h1>
-          <p className="mt-2 text-sm text-slate-600 md:text-base">
-            台数を選択し、データ消去方法をお選びください。
+          <p className="mt-2 text-sm leading-7 text-slate-600 md:text-base">
+            回収する台数と、データ消去の方法を選択してください。
           </p>
         </header>
 
         <form onSubmit={onSubmit} className="space-y-6" noValidate>
-          <Controller
-            name="pcCount"
-            control={control}
-            render={({ field }) => (
-              <CountStepper
-                id="pc-count"
-                label="パソコン台数"
-                description="デスクトップ・ノートの合計台数"
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.pcCount?.message}
-              />
-            )}
-          />
+          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5 border-b border-slate-100 pb-4">
+              <h2 className="text-lg font-bold tracking-[-0.02em] text-slate-900 sm:text-xl">
+                回収品目
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                各項目の数量を入力してください。数量の増減は右側のボタンから操作できます。
+              </p>
+            </div>
 
-          <Controller
-            name="monitorCount"
-            control={control}
-            render={({ field }) => (
-              <CountStepper
-                id="monitor-count"
-                label="モニター台数"
-                description="液晶ディスプレイなど"
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.monitorCount?.message}
+            <div className="space-y-4">
+              <Controller
+                name="pcCount"
+                control={control}
+                render={({ field }) => (
+                  <CountStepper
+                    id="pc-count"
+                    label="パソコン台数"
+                    description="デスクトップ・ノートパソコンの合計台数"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.pcCount?.message}
+                  />
+                )}
               />
-            )}
-          />
 
-          <Controller
-            name="smallApplianceBoxCount"
-            control={control}
-            render={({ field }) => (
-              <CountStepper
-                id="small-appliance-boxes"
-                label="小型家電の箱数"
-                description="パソコン以外の小型家電が入る段ボールの箱数"
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.smallApplianceBoxCount?.message}
+              <Controller
+                name="monitorCount"
+                control={control}
+                render={({ field }) => (
+                  <CountStepper
+                    id="monitor-count"
+                    label="モニター台数"
+                    description="液晶ディスプレイや外付けモニターの台数"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.monitorCount?.message}
+                  />
+                )}
               />
-            )}
-          />
 
-          <fieldset className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <legend className="px-1 text-base font-bold text-slate-900">
-              データ消去サービス
+              <Controller
+                name="smallApplianceBoxCount"
+                control={control}
+                render={({ field }) => (
+                  <CountStepper
+                    id="small-appliance-boxes"
+                    label="小型家電の箱数"
+                    description="パソコン以外の小型家電を入れる段ボール箱の数"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.smallApplianceBoxCount?.message}
+                  />
+                )}
+              />
+            </div>
+          </section>
+
+          <fieldset className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <legend className="px-1 text-lg font-bold text-slate-900">
+              データ消去方法
             </legend>
-            <p className="mb-4 text-sm text-slate-600">
-              ご自身での消去か、おまかせ消去（有料）をお選びください。
+            <p className="mb-4 text-sm leading-6 text-slate-600">
+              発送前にご自身で対応するか、当社のおまかせ消去サービスを利用するかを選択してください。
             </p>
             <Controller
               name="dataErasureOption"
               control={control}
               render={({ field }) => (
                 <div className="space-y-3">
-                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 transition has-checked:border-orange-400 has-checked:bg-orange-50 has-checked:shadow-sm">
                     <input
                       type="radio"
                       className="mt-1 h-4 w-4 border-slate-300 text-orange-500 focus:ring-orange-500"
                       checked={field.value === 'self_erase_free'}
                       onChange={() => field.onChange('self_erase_free' satisfies DataErasureOption)}
                     />
-                    <span>
-                      <span className="font-semibold text-slate-900">
-                        自分でデータ消去する（無料）
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-900">
+                          ご自身で事前に消去する
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          追加料金なし
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-sm text-slate-600">
+                      <span className="mt-1 block text-sm leading-6 text-slate-600">
                         発送前にご自身で消去作業を行っていただきます。
                       </span>
                     </span>
                   </label>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 transition has-checked:border-orange-400 has-checked:bg-orange-50 has-checked:shadow-sm">
                     <input
                       type="radio"
                       className="mt-1 h-4 w-4 border-slate-300 text-orange-500 focus:ring-orange-500"
@@ -214,12 +232,17 @@ export default function Step1Items() {
                         field.onChange('full_service_paid' satisfies DataErasureOption)
                       }
                     />
-                    <span>
-                      <span className="font-semibold text-slate-900">
-                        おまかせデータ消去（有料）
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-900">
+                          おまかせ消去サービスを利用する
+                        </span>
+                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                          ＋3,000円
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-sm text-slate-600">
-                        認定工程での消去（証明書発行を想定）／モック +3,000円
+                      <span className="mt-1 block text-sm leading-6 text-slate-600">
+                        専門工程でデータ消去を行う想定のオプションです。料金の目安は 3,000 円です。
                       </span>
                     </span>
                   </label>
@@ -234,13 +257,13 @@ export default function Step1Items() {
           </fieldset>
 
           <section
-            className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 md:p-5"
+            className="rounded-[28px] border border-emerald-200 bg-emerald-50/80 p-5 md:p-6"
             aria-live="polite"
           >
             <h2 className="text-sm font-bold text-emerald-900 md:text-base">
               料金の目安（モック）
             </h2>
-            <ul className="mt-3 space-y-2 text-sm text-emerald-900">
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-emerald-900">
               <li className="flex justify-between gap-4 border-b border-emerald-200/80 pb-2">
                 <span>宅配枠・基本料金（パソコン1台以上で免除イメージ）</span>
                 <span className="shrink-0 font-semibold tabular-nums">
@@ -250,16 +273,16 @@ export default function Step1Items() {
                 </span>
               </li>
               <li className="flex justify-between gap-4 border-b border-emerald-200/80 pb-2">
-                <span>データ消去オプション</span>
+                <span>データ消去サービス</span>
                 <span className="shrink-0 font-semibold tabular-nums">
                   {eraseFee > 0
                     ? `+${eraseFee.toLocaleString()} 円`
                     : '0 円'}
                 </span>
               </li>
-              <li className="flex justify-between gap-4 pt-1 font-bold">
+              <li className="flex items-baseline justify-end gap-3 pt-2 font-bold text-right">
                 <span>小計（参考）</span>
-                <span className="shrink-0 tabular-nums">
+                <span className="shrink-0 tabular-nums text-lg">
                   {subtotalHint.toLocaleString()} 円
                 </span>
               </li>
@@ -273,13 +296,13 @@ export default function Step1Items() {
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
             <Link
               to="/"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700"
             >
               キャンセル
             </Link>
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-orange-500 px-8 text-base font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              className="inline-flex h-12 items-center justify-center rounded-xl border-2 border-orange-300 bg-white px-8 text-base font-bold text-orange-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               次へ：日時指定
             </button>

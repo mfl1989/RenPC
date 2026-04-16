@@ -11,6 +11,29 @@ export interface OrderSubmitResult {
   orderId: number
 }
 
+export interface OrderLookupPayload {
+  orderId: number
+  email: string
+}
+
+export interface OrderLookupResult {
+  orderId: number
+  contactName: string
+  email: string
+  orderStatus: string
+  progressSummary: string
+  collectionDate: string
+  collectionTimeSlot: string
+  createdAt: string
+  lastUpdatedAt: string
+  pcCount: number
+  monitorCount: number
+  smallApplianceBoxCount: number
+  dataErasureOptionLabel: string
+  cardboardDeliveryLabel: string
+  customerNote: string | null
+}
+
 function messageFromAxiosError(e: unknown): string {
   if (isAxiosError(e)) {
     const body = e.response?.data
@@ -37,6 +60,26 @@ export async function submitRecycleOrder(
     const { data } = await axios.post<ApiEnvelope<OrderSubmitResult>>('/api/orders', payload)
     if (data.code !== 200 || data.data == null) {
       throw new Error(data.message || '送信に失敗しました')
+    }
+    return data.data
+  } catch (e) {
+    if (isAxiosError(e)) {
+      throw new Error(messageFromAxiosError(e))
+    }
+    if (e instanceof Error) {
+      throw e
+    }
+    throw new Error(messageFromAxiosError(e))
+  }
+}
+
+export async function lookupRecycleOrder(
+  payload: OrderLookupPayload,
+): Promise<OrderLookupResult> {
+  try {
+    const { data } = await axios.post<ApiEnvelope<OrderLookupResult>>('/api/orders/lookup', payload)
+    if (data.code !== 200 || data.data == null) {
+      throw new Error(data.message || '照会に失敗しました')
     }
     return data.data
   } catch (e) {

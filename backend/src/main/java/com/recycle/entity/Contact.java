@@ -1,12 +1,16 @@
 package com.recycle.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,29 +18,24 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 /**
- * 会員ユーザー。パスワードは平文禁止（password_hash のみ保持）。
+ * 回収申込で利用する連絡先情報。
  */
 @Entity
-@Table(name = "users")
+@Table(name = "contacts")
 @Data
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = "recycleOrders")
 @ToString(callSuper = true, exclude = "recycleOrders")
-@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE contacts SET is_deleted = true WHERE id = ?")
 @SQLRestriction("is_deleted = false")
-public class User extends BaseAuditEntity {
+public class Contact extends BaseAuditEntity {
 
     @Column(name = "email", nullable = false, length = 320)
     private String email;
-
-    @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash;
 
     /** 氏名（漢字） */
     @Column(name = "name", nullable = false, length = 255)
@@ -69,14 +68,7 @@ public class User extends BaseAuditEntity {
     @Builder.Default
     private boolean identityVerified = false;
 
-    /**
-     * アプリ権限（例: USER, ADMIN）。DB は ROLE_ なしで保持し、UserDetails では ROLE_ を付与する。
-     */
-    @Column(name = "role", nullable = false, length = 32)
-    @Builder.Default
-    private String role = "USER";
-
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "contact", fetch = FetchType.LAZY)
     @Builder.Default
     private List<RecycleOrder> recycleOrders = new ArrayList<>();
 }

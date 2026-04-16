@@ -1,14 +1,21 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import AdminOrderList from './pages/admin/AdminOrderList.tsx'
-import AdminLogin from './pages/admin/AdminLogin.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
-import LandingPage from './pages/LandingPage.tsx'
+import AdminLogin from './pages/admin/AdminLogin.tsx'
+import AdminOrderList from './pages/admin/AdminOrderList.tsx'
+import ApplyComplete from './pages/apply/ApplyComplete.tsx'
 import ApplyLayout from './pages/apply/ApplyLayout.tsx'
 import Step1Items from './pages/apply/Step1Items.tsx'
 import Step2Schedule from './pages/apply/Step2Schedule.tsx'
 import Step3Customer from './pages/apply/Step3Customer.tsx'
-import ApplyComplete from './pages/apply/ApplyComplete.tsx'
 import Step4Confirm from './pages/apply/Step4Confirm.tsx'
+import CollectionFlowPage from './pages/CollectionFlowPage.tsx'
+import CompanyPage from './pages/CompanyPage.tsx'
+import ContactPage from './pages/ContactPage.tsx'
+import LandingPage from './pages/LandingPage.tsx'
+import OrderLookupPage from './pages/OrderLookupPage.tsx'
+import PackingGuidePage from './pages/PackingGuidePage.tsx'
+import PrivacyPage from './pages/PrivacyPage.tsx'
+import TermsPage from './pages/TermsPage.tsx'
 
 export default function App() {
   return (
@@ -22,6 +29,13 @@ export default function App() {
         <Route path="step4" element={<Step4Confirm />} />
         <Route path="complete" element={<ApplyComplete />} />
       </Route>
+      <Route path="/orders/lookup" element={<OrderLookupPage />} />
+      <Route path="/company" element={<CompanyPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/guide/flow" element={<CollectionFlowPage />} />
+      <Route path="/guide/packing" element={<PackingGuidePage />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<ProtectedRoute />}>
         <Route path="orders" element={<AdminOrderList />} />

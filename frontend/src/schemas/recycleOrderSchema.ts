@@ -93,7 +93,6 @@ const recycleOrderFields = {
     }
   }),
   email: z.email('メールアドレスの形式が正しくありません'),
-  password: z.string().min(8, 'パスワードは8文字以上で設定してください'),
   /** Step 4: 利用規約同意（最終スキーマで true を検証） */
   termsAccepted: z.boolean(),
 }
@@ -159,7 +158,6 @@ export const recycleOrderStep3Schema = recycleOrderObject.pick({
   addressLine2: true,
   phone: true,
   email: true,
-  password: true,
 })
 
 /** Step 4（同意のみ） */
@@ -190,7 +188,6 @@ export const defaultRecycleOrderValues: RecycleOrderFormValues = {
   addressLine2: '',
   phone: '',
   email: '',
-  password: '',
   termsAccepted: false,
 }
 

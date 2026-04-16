@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/auth-context'
 import axios from '../../lib/axios'
+import { formatOrderId } from '../../lib/orderId'
 
 const PAGE_SIZE = 20
 
 type OrderStatusCode = 'RECEIVED' | 'KIT_SHIPPED' | 'COLLECTING' | 'ARRIVED' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
 
 interface OrderListRow {
-  orderId: number; userName: string; userPhone: string; collectionDate: string; collectionTime: string;
+  orderId: number; contactName: string; contactPhone: string; collectionDate: string; collectionTime: string;
   orderStatus: OrderStatusCode; totalAmount: number; createdAt: string; version: number;
 }
 
 // —— 【新增】订单详情的数据类型 ——
 interface OrderDetailData {
-  orderId: number; orderStatus: string; collectionDate: string; collectionTimeSlot: string; totalAmount: number; createdAt: string;
+  orderId: number; version: number; orderStatus: string; collectionDate: string; collectionTimeSlot: string; totalAmount: number; createdAt: string;
+  lastUpdatedAt: string;
   pcCount: number; monitorCount: number; smallApplianceBoxCount: number; dataErasureOption: string; cardboardDeliveryRequested: boolean;
-  customerNameKanji: string; customerNameKana: string; postalCode: string; prefecture: string; city: string; addressLine1: string; addressLine2: string; phone: string; email: string;
+  customerNameKanji: string; customerNameKana: string; postalCode: string; prefecture: string; city: string; addressLine1: string; addressLine2: string; phone: string; email: string; customerNote: string | null; internalNote: string | null;
+  internalNoteHistories: { historyId: number; previousNote: string | null; newNote: string | null; changedBy: string; changedAt: string; }[];
+  statusHistories: { historyId: number; previousStatus: string | null; newStatus: string; changedBy: string; changedAt: string; changeReason: string | null; }[];
 }
 
 interface OrderListPageData { content: OrderListRow[]; totalPages: number; totalElements: number; }
@@ -42,6 +46,10 @@ function statusBadgeClass(status: string): string {
 
 function formatYen(amount: number): string { return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(amount) }
 
+function getStatusLabel(status: OrderStatusCode): string {
+  return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
+}
+
 export default function AdminOrderList() {
   const { logout } = useAuth()
   const [page, setPage] = useState(0)
@@ -57,6 +65,25 @@ export default function AdminOrderList() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [detailData, setDetailData] = useState<OrderDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailNoteDraft, setDetailNoteDraft] = useState('')
+  const [detailInternalNoteDraft, setDetailInternalNoteDraft] = useState('')
+  const [detailStatusDraft, setDetailStatusDraft] = useState<OrderStatusCode>('RECEIVED')
+  const [detailStatusReasonDraft, setDetailStatusReasonDraft] = useState('')
+  const [detailSaving, setDetailSaving] = useState(false)
+  const [detailStatusSaving, setDetailStatusSaving] = useState(false)
+  const [selectedRow, setSelectedRow] = useState<OrderListRow | null>(null)
+  const [detailSaveMessage, setDetailSaveMessage] = useState<string | null>(null)
+  const [detailSaveError, setDetailSaveError] = useState<string | null>(null)
+  const [listActionMessage, setListActionMessage] = useState<string | null>(null)
+  const [listActionError, setListActionError] = useState<string | null>(null)
+
+  const fetchOrderDetail = useCallback(async (orderId: number) => {
+    const { data } = await axios.get<ApiEnvelope<OrderDetailData>>(`/api/admin/orders/${orderId}`)
+    if (data.code !== 200 || !data.data) {
+      throw new Error('detail fetch failed')
+    }
+    return data.data
+  }, [])
 
   const load = useCallback(async (p: number, searchKeyword: string = "") => {
     setLoading(true); setError(null)
@@ -70,6 +97,8 @@ export default function AdminOrderList() {
   useEffect(() => { void load(page, appliedKeyword) }, [appliedKeyword, load, page])
 
   const handleSearch = () => {
+    setListActionMessage(null)
+    setListActionError(null)
     setAppliedKeyword(keyword)
     setPage(0)
   }
@@ -85,17 +114,20 @@ export default function AdminOrderList() {
   }
 
   // —— 【新增】打开弹窗并请求详情数据 ——
-  const handleOpenDetail = async (orderId: number) => {
+  const handleOpenDetail = async (row: OrderListRow) => {
+    setSelectedRow(row)
     setIsModalOpen(true)
     setDetailLoading(true)
     setDetailData(null)
+    setDetailSaveMessage(null)
+    setDetailSaveError(null)
+    setDetailStatusDraft(row.orderStatus)
+    setDetailStatusReasonDraft('')
     try {
-      const { data } = await axios.get<ApiEnvelope<OrderDetailData>>(`/api/admin/orders/${orderId}`)
-      if (data.code === 200 && data.data) {
-        setDetailData(data.data)
-      } else {
-        alert("詳細情報の取得に失敗しました。")
-      }
+      const detail = await fetchOrderDetail(row.orderId)
+      setDetailData(detail)
+      setDetailNoteDraft(detail.customerNote ?? '')
+      setDetailInternalNoteDraft(detail.internalNote ?? '')
     } catch {
       alert("通信エラーが発生しました。")
     } finally {
@@ -103,12 +135,76 @@ export default function AdminOrderList() {
     }
   }
 
-  const handleStatusChange = async (orderId: number, currentVersion: number, newStatus: string) => {
-    if (!window.confirm('ステータスを更新しますか？')) return
+  const handleSaveCustomerNote = async () => {
+    if (!detailData || !selectedRow || detailSaving) return
+    setDetailSaving(true)
+    setDetailSaveMessage(null)
+    setDetailSaveError(null)
     try {
-      await axios.put(`/api/admin/orders/${orderId}/status`, { status: newStatus, version: currentVersion })
-      void load(page, appliedKeyword)
-    } catch { alert('ステータスの更新に失敗しました'); void load(page, appliedKeyword) }
+      await axios.put(`/api/admin/orders/${detailData.orderId}/status`, {
+        status: selectedRow.orderStatus,
+        version: detailData.version,
+        customerNote: detailNoteDraft,
+        internalNote: detailInternalNoteDraft,
+      })
+      const refreshedRow = { ...selectedRow, version: detailData.version + 1 }
+      setSelectedRow(refreshedRow)
+      setRows((current) => current.map((row) => row.orderId === refreshedRow.orderId ? refreshedRow : row))
+      const refreshedDetail = await fetchOrderDetail(detailData.orderId)
+      setDetailData(refreshedDetail)
+      setDetailStatusDraft(refreshedRow.orderStatus)
+      setDetailSaveMessage('メモを保存しました。')
+    } catch {
+      setDetailSaveError('保存に失敗しました。別の更新が入った可能性があります。最新データを再取得しました。')
+      if (selectedRow) {
+        void handleOpenDetail(selectedRow)
+      }
+    } finally {
+      setDetailSaving(false)
+    }
+  }
+
+  const handleSaveDetailStatus = async () => {
+    if (!detailData || !selectedRow || detailStatusSaving) return
+    if (detailStatusDraft === selectedRow.orderStatus) {
+      setDetailSaveError('変更後のステータスを選択してください。')
+      return
+    }
+    if (!detailStatusReasonDraft.trim()) {
+      setDetailSaveError('ステータス変更理由を入力してください。')
+      return
+    }
+
+    setDetailStatusSaving(true)
+    setDetailSaveMessage(null)
+    setDetailSaveError(null)
+    try {
+      await axios.put(`/api/admin/orders/${detailData.orderId}/status`, {
+        status: detailStatusDraft,
+        version: detailData.version,
+        statusChangeReason: detailStatusReasonDraft,
+      })
+      const updatedRow = { ...selectedRow, orderStatus: detailStatusDraft, version: detailData.version + 1 }
+      setSelectedRow(updatedRow)
+      setRows((current) => current.map((row) => row.orderId === updatedRow.orderId ? updatedRow : row))
+      const refreshedDetail = await fetchOrderDetail(detailData.orderId)
+      setDetailData(refreshedDetail)
+      setDetailStatusDraft(updatedRow.orderStatus)
+      setDetailStatusReasonDraft('')
+      setDetailSaveMessage('ステータスを更新しました。')
+      setListActionMessage(`注文 ${formatOrderId(updatedRow.orderId)} のステータスを更新しました。`)
+    } catch (error) {
+      if (axios.isAxiosError<ApiEnvelope<null>>(error)) {
+        setDetailSaveError(error.response?.data?.message ?? 'ステータスの更新に失敗しました。')
+      } else {
+        setDetailSaveError('ステータスの更新に失敗しました。')
+      }
+      if (selectedRow) {
+        void handleOpenDetail(selectedRow)
+      }
+    } finally {
+      setDetailStatusSaving(false)
+    }
   }
 
   return (
@@ -122,6 +218,8 @@ export default function AdminOrderList() {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
+        {listActionMessage && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{listActionMessage}</div>}
+        {listActionError && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{listActionError}</div>}
 
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 max-w-lg gap-2">
@@ -148,18 +246,19 @@ export default function AdminOrderList() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">読み込み中…</td></tr> : rows.map((row) => (
                   <tr key={row.orderId} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3 font-mono text-slate-800">#{row.orderId}</td>
-                    <td className="px-4 py-3 text-slate-800 font-medium">{row.userName}</td>
-                    <td className="px-4 py-3 font-mono text-slate-600">{row.userPhone}</td>
+                    <td className="px-4 py-3 font-mono text-slate-800">{formatOrderId(row.orderId)}</td>
+                    <td className="px-4 py-3 text-slate-800 font-medium">{row.contactName}</td>
+                    <td className="px-4 py-3 font-mono text-slate-600">{row.contactPhone}</td>
                     <td className="px-4 py-3 text-center">
-                      <select value={row.orderStatus} onChange={(e) => handleStatusChange(row.orderId, row.version, e.target.value)} disabled={row.orderStatus === 'COMPLETED' || row.orderStatus === 'CANCELLED'} className={`${statusBadgeClass(row.orderStatus)} cursor-pointer border-none py-1 focus:ring-2`}>
-                        {STATUS_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                      </select>
+                      <span className={statusBadgeClass(row.orderStatus)}>{getStatusLabel(row.orderStatus)}</span>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-800 font-medium">{formatYen(row.totalAmount)}</td>
                     <td className="px-4 py-3 text-center">
-                      <button onClick={() => handleOpenDetail(row.orderId)} className="text-sky-600 hover:text-sky-800 font-medium px-2 py-1 bg-sky-50 rounded transition-colors">
-                        詳細
+                      <button
+                        onClick={() => handleOpenDetail(row)}
+                        className="inline-flex min-w-20 items-center justify-center rounded-lg border border-sky-200 bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-sky-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-1 active:translate-y-0 active:bg-sky-800"
+                      >
+                        詳細を見る
                       </button>
                     </td>
                   </tr>
@@ -182,7 +281,7 @@ export default function AdminOrderList() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center border-b px-6 py-4 bg-slate-50">
               <h3 className="text-lg font-bold text-slate-800">
-                {detailData ? `注文詳細 #${detailData.orderId}` : '読み込み中...'}
+                {detailData ? `注文詳細 ${formatOrderId(detailData.orderId)}` : '読み込み中...'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
             </div>
@@ -202,6 +301,8 @@ export default function AdminOrderList() {
                       </div>
                       <div><span className="text-slate-500 text-xs block">回収希望日</span><span className="font-medium">{detailData.collectionDate}</span></div>
                       <div><span className="text-slate-500 text-xs block">時間帯</span><span className="font-medium">{detailData.collectionTimeSlot}</span></div>
+                      <div><span className="text-slate-500 text-xs block">最終更新日時</span><span className="font-medium">{detailData.lastUpdatedAt}</span></div>
+                      <div><span className="text-slate-500 text-xs block">バージョン</span><span className="font-medium">v{detailData.version}</span></div>
                     </div>
                   </div>
 
@@ -215,6 +316,145 @@ export default function AdminOrderList() {
                       <div><span className="text-sky-700 text-xs block">段ボール事前配送</span><span className="font-medium">{detailData.cardboardDeliveryRequested ? '希望する' : '希望しない'}</span></div>
                       <div><span className="text-sky-700 text-xs block">合計金額</span><span className="font-bold text-xl text-red-600">{formatYen(detailData.totalAmount)}</span></div>
                     </div>
+                  </div>
+
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <h4 className="font-bold text-indigo-800 mb-3 border-b border-indigo-200 pb-2">ステータス更新</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <span className="mb-1 block text-xs text-indigo-700">現在のステータス</span>
+                        <div className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-slate-800">{selectedRow ? getStatusLabel(selectedRow.orderStatus) : detailData.orderStatus}</div>
+                      </div>
+                      <div>
+                        <span className="mb-1 block text-xs text-indigo-700">変更後のステータス</span>
+                        <select value={detailStatusDraft} onChange={(event) => setDetailStatusDraft(event.target.value as OrderStatusCode)} disabled={detailStatusSaving || selectedRow?.orderStatus === 'COMPLETED' || selectedRow?.orderStatus === 'CANCELLED'} className="block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                          {STATUS_OPTIONS.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="mb-1 block text-xs text-indigo-700">変更理由</span>
+                      <textarea
+                        value={detailStatusReasonDraft}
+                        onChange={(event) => setDetailStatusReasonDraft(event.target.value)}
+                        maxLength={500}
+                        rows={3}
+                        className="block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        placeholder="例: 集荷日が確定したため。"
+                      />
+                      <div className="mt-2 flex items-center justify-between text-xs text-indigo-800/80">
+                        <span>ステータスを変更する場合は理由が必須です。</span>
+                        <span>{detailStatusReasonDraft.length} / 500</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button onClick={handleSaveDetailStatus} disabled={detailStatusSaving || detailStatusDraft === selectedRow?.orderStatus || !detailStatusReasonDraft.trim()} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+                        {detailStatusSaving ? '更新中…' : 'ステータスを更新'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                    <h4 className="font-bold text-amber-800 mb-3 border-b border-amber-200 pb-2">申込者への個別案内</h4>
+                    {detailSaveMessage ? <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{detailSaveMessage}</div> : null}
+                    {detailSaveError ? <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{detailSaveError}</div> : null}
+                    <textarea
+                      value={detailNoteDraft}
+                      onChange={(event) => setDetailNoteDraft(event.target.value)}
+                      maxLength={1000}
+                      rows={4}
+                      className="block w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                      placeholder="例: 回収前日にお電話で訪問時間をご連絡します。"
+                    />
+                    <div className="mt-2 flex items-center justify-between text-xs text-amber-800/80">
+                      <span>注文照会画面と通知メールに表示されます。</span>
+                      <span>{detailNoteDraft.length} / 1000</span>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        onClick={handleSaveCustomerNote}
+                        disabled={detailSaving}
+                        className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {detailSaving ? '保存中…' : '個別案内を保存'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 border-b border-slate-300 pb-2">内部メモ</h4>
+                    <textarea
+                      value={detailInternalNoteDraft}
+                      onChange={(event) => setDetailInternalNoteDraft(event.target.value)}
+                      maxLength={1000}
+                      rows={4}
+                      className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      placeholder="例: 本人確認書類の案内を別途送付予定。"
+                    />
+                    <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
+                      <span>この欄は管理画面のみで使用され、申込者には公開されません。</span>
+                      <span>{detailInternalNoteDraft.length} / 1000</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2">ステータス更新履歴</h4>
+                    {detailData.statusHistories.length === 0 ? (
+                      <p className="text-sm text-slate-500">まだ履歴はありません。</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {detailData.statusHistories.map((history) => (
+                          <div key={history.historyId} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+                              <span>{history.changedBy}</span>
+                              <span>{history.changedAt}</span>
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div>
+                                <div className="mb-1 text-xs font-medium text-slate-500">変更前</div>
+                                <div className="rounded border border-slate-200 bg-white p-2 text-sm text-slate-700">{history.previousStatus || '初回設定'}</div>
+                              </div>
+                              <div>
+                                <div className="mb-1 text-xs font-medium text-slate-500">変更後</div>
+                                <div className="rounded border border-slate-200 bg-white p-2 text-sm text-slate-700">{history.newStatus}</div>
+                              </div>
+                            </div>
+                            <div className="mt-2">
+                              <div className="mb-1 text-xs font-medium text-slate-500">変更理由</div>
+                              <div className="rounded border border-slate-200 bg-white p-2 text-sm text-slate-700 whitespace-pre-wrap">{history.changeReason || '未入力'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2">内部メモ更新履歴</h4>
+                    {detailData.internalNoteHistories.length === 0 ? (
+                      <p className="text-sm text-slate-500">まだ履歴はありません。</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {detailData.internalNoteHistories.map((history) => (
+                          <div key={history.historyId} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+                              <span>{history.changedBy}</span>
+                              <span>{history.changedAt}</span>
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div>
+                                <div className="mb-1 text-xs font-medium text-slate-500">変更前</div>
+                                <div className="min-h-16 rounded border border-slate-200 bg-white p-2 text-sm text-slate-700 whitespace-pre-wrap">{history.previousNote || '未入力'}</div>
+                              </div>
+                              <div>
+                                <div className="mb-1 text-xs font-medium text-slate-500">変更後</div>
+                                <div className="min-h-16 rounded border border-slate-200 bg-white p-2 text-sm text-slate-700 whitespace-pre-wrap">{history.newNote || '未入力'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

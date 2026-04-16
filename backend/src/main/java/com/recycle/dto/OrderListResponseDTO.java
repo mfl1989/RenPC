@@ -15,19 +15,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderListResponseDTO {
 
-
     /** 排他制御用のバージョン */
 
     private Long version;
-    
+
     /** 注文ID */
     private Long orderId;
 
     /** 申込時点の氏名（漢字） */
-    private String userName;
+    private String contactName;
 
     /** 申込時点の電話番号（保存形式のまま） */
-    private String userPhone;
+    private String contactPhone;
 
     /** 回収希望日（例: 2026年4月5日） */
     private String collectionDate;

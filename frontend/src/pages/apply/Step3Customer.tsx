@@ -19,7 +19,6 @@ type Step3FieldName =
   | 'addressLine2'
   | 'phone'
   | 'email'
-  | 'password'
 
 function fieldBorder(hasError: boolean) {
   return hasError
@@ -168,7 +167,6 @@ export default function Step3Customer() {
       addressLine2: values.addressLine2,
       phone: values.phone,
       email: values.email,
-      password: values.password,
     })
     if (!parsed.success) {
       applyZodIssuesToForm(parsed.error, setError)
@@ -186,12 +184,12 @@ export default function Step3Customer() {
   const goBack = () => navigate('/apply/step2')
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 pt-8 font-sans text-slate-800">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
       <div className="mx-auto max-w-2xl px-4 md:px-6">
         <div className="mb-6 text-center">
           <Link
             to="/"
-            className="text-sm font-medium text-orange-600 hover:underline"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             ← トップへ戻る
           </Link>
@@ -312,16 +310,9 @@ export default function Step3Customer() {
               name="email"
               label="メールアドレス"
               type="email"
+              hint="受付確認やご連絡に使用します。"
               register={register}
               error={errors.email?.message}
-            />
-            <Step3Field
-              name="password"
-              label="パスワード"
-              hint="マイページ用・8文字以上"
-              type="password"
-              register={register}
-              error={errors.password?.message}
             />
           </div>
 
@@ -329,13 +320,13 @@ export default function Step3Customer() {
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex h-12 min-w-[8rem] items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700"
             >
               戻る
             </button>
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-orange-500 px-8 text-base font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              className="inline-flex h-12 items-center justify-center rounded-xl border-2 border-orange-300 bg-white px-8 text-base font-bold text-orange-700 shadow-sm transition hover:-translate-y-px hover:border-orange-400 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               次へ：内容確認
             </button>

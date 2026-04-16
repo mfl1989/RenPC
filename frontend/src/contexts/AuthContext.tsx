@@ -2,7 +2,7 @@ import axios, { isAxiosError } from 'axios'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ADMIN_JWT_STORAGE_KEY } from '../lib/axios'
-import { AuthContext } from './auth-context'
+import { AuthContext, type AuthContextValue } from './auth-context'
 
 interface ApiEnvelope<T> {
   code: number

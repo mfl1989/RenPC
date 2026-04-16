@@ -23,6 +23,17 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Tokyo
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
 
 # JWT 設定（MVP: HS256）
 jwt:
@@ -35,3 +46,10 @@ jwt:
 admin:
   username: ${ADMIN_USERNAME:admin}
   password: ${ADMIN_PASSWORD:admin}
+
+notification:
+  mail:
+    enabled: ${NOTIFICATION_MAIL_ENABLED:false}
+    from: ${NOTIFICATION_MAIL_FROM:no-reply@example.local}
+    reply-to: ${NOTIFICATION_MAIL_REPLY_TO:}
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}

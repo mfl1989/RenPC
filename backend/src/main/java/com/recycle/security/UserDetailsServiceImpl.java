@@ -1,74 +1,46 @@
 package com.recycle.security;
 
-import com.recycle.entity.User;
-import com.recycle.repository.UserRepository;
-import com.recycle.security.admin.AdminAuthProperties;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.recycle.security.admin.AdminAuthProperties;
+
+import lombok.RequiredArgsConstructor;
+
 /**
- * DB ユーザーおよび MVP 管理者（application.yml）の認証情報を読み込む。
+ * 管理画面用 JWT の subject を解決するための UserDetailsService。
+ * 申込者の連絡先レコードは認証主体として扱わない。
  */
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
-    private final AdminAuthProperties adminAuthProperties;
-//    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+        private static final String JWT_SUBJECT_PLACEHOLDER_PASSWORD = "{noop}jwt-subject-only";
 
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        if (email == null || email.isBlank()) {
-            throw new UsernameNotFoundException("メールアドレスが未指定です。");
+        private final AdminAuthProperties adminAuthProperties;
+
+        @Override
+        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+                if (username == null || username.isBlank()) {
+                        throw new UsernameNotFoundException("ユーザー名が未指定です。");
+                }
+
+                String trimmed = username.trim();
+                String adminUsername = adminAuthProperties.getUsername();
+                if (adminUsername == null || !adminUsername.equals(trimmed)) {
+                        throw new UsernameNotFoundException("指定された管理者が見つかりません。");
+                }
+
+                return org.springframework.security.core.userdetails.User.builder()
+                                .username(trimmed)
+                                .password(JWT_SUBJECT_PLACEHOLDER_PASSWORD)
+                                .authorities("ROLE_ADMIN")
+                                .accountExpired(false)
+                                .accountLocked(false)
+                                .credentialsExpired(false)
+                                .disabled(false)
+                                .build();
         }
-
-        String trimmed = email.trim();
-
-       // MVP: 設定ファイルの管理者 ID（ユーザー名）と一致する場合は DB に依存しない ADMIN
-        if (adminAuthProperties.getUsername() != null
-                && adminAuthProperties.getUsername().equals(trimmed)) {
-            
-            org.springframework.security.crypto.password.PasswordEncoder encoder = 
-                    new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
-
-            
-            String safePassword = adminAuthProperties.getPassword() != null ? adminAuthProperties.getPassword() : "admin";
-
-            return org.springframework.security.core.userdetails.User.builder()
-                    .username(trimmed)
-                    .password(encoder.encode(safePassword)) 
-                    .authorities("ROLE_ADMIN")
-                    .accountExpired(false)
-                    .accountLocked(false)
-                    .credentialsExpired(false)
-                    .disabled(false)
-                    .build();
-        }
-
-        User user =
-                userRepository
-                        .findByEmail(trimmed)
-                        .orElseThrow(
-                                () ->
-                                        new UsernameNotFoundException(
-                                                "指定されたメールアドレスのユーザーが見つかりません。"));
-
-        String rawRole =
-                user.getRole() == null || user.getRole().isBlank() ? "USER" : user.getRole().trim();
-        String authority = rawRole.startsWith("ROLE_") ? rawRole : "ROLE_" + rawRole;
-
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities(authority)
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
-    }
 }

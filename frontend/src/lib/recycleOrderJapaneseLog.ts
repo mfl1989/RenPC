@@ -1,12 +1,12 @@
 import type {
-  DataErasureOption,
-  RecycleOrderFormValues,
-  TimeSlotOption,
+    DataErasureOption,
+    RecycleOrderFormValues,
+    TimeSlotOption,
 } from '../schemas/recycleOrderSchema.ts'
 
 const DATA_ERASURE_LABEL: Record<DataErasureOption, string> = {
-  self_erase_free: '自分でデータ消去する（無料）',
-  full_service_paid: 'おまかせデータ消去（有料）',
+  self_erase_free: 'ご自身で事前に消去する',
+  full_service_paid: 'おまかせ消去サービスを利用する',
 }
 
 const TIME_SLOT_LABEL: Record<TimeSlotOption, string> = {
@@ -23,7 +23,7 @@ const FIELD_LABEL_JA: Record<keyof RecycleOrderFormValues, string> = {
   pcCount: 'パソコン台数',
   monitorCount: 'モニター台数',
   smallApplianceBoxCount: '小型家電の箱数',
-  dataErasureOption: 'データ消去オプション',
+  dataErasureOption: 'データ消去方法',
   collectionDate: '回収希望日',
   timeSlot: '希望時間帯',
   cardboardDeliveryRequested: '段ボール事前送付',
@@ -36,7 +36,6 @@ const FIELD_LABEL_JA: Record<keyof RecycleOrderFormValues, string> = {
   addressLine2: '建物名・部屋番号（任意）',
   phone: '電話番号',
   email: 'メールアドレス',
-  password: 'パスワード',
   termsAccepted: '利用規約への同意',
 }
 
@@ -73,10 +72,6 @@ export function logValidatedRecycleOrderJa(data: RecycleOrderFormValues): void {
 
   for (const key of Object.keys(data) as (keyof RecycleOrderFormValues)[]) {
     const label = FIELD_LABEL_JA[key]
-    if (key === 'password') {
-      日本語サマリー[label] = '***'
-      continue
-    }
     日本語サマリー[label] = formatValueJa(key, data[key])
   }
 
@@ -84,14 +79,8 @@ export function logValidatedRecycleOrderJa(data: RecycleOrderFormValues): void {
     検証結果: '成功',
     検証メッセージ: 'RecycleOrderSchema（Zod）に適合したデータです。',
     日本語サマリー,
-    API用データ_英キー: {
-      ...data,
-      password: '***',
-    },
+    API用データ_英キー: data,
   }
 
-  console.log(
-    '[RecycleOrder] 検証済み JSON（日本語サマリー + API 用キー・パスワードマスク）',
-    JSON.stringify(payload, null, 2),
-  )
+  console.log('[RecycleOrder] 検証済み JSON（日本語サマリー + API 用キー）', JSON.stringify(payload, null, 2))
 }

@@ -80,6 +80,9 @@ public class SecurityConfig {
                                                                 .permitAll()
                                                                 .requestMatchers(HttpMethod.POST, "/api/orders/lookup")
                                                                 .permitAll()
+                                                                .requestMatchers(HttpMethod.POST,
+                                                                                "/api/contact-inquiries")
+                                                                .permitAll()
                                                                 .requestMatchers("/api/zip/**")
                                                                 .permitAll()
                                                                 .requestMatchers(HttpMethod.GET, "/api/hello")

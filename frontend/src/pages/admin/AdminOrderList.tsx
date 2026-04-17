@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/auth-context'
 import axios from '../../lib/axios'
 import { formatOrderId } from '../../lib/orderId'
+import AdminDashboardHeader from './AdminDashboardHeader.tsx'
 
 const PAGE_SIZE = 20
 
@@ -209,12 +210,12 @@ export default function AdminOrderList() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div><h1 className="text-lg font-semibold tracking-tight text-slate-900">注文一覧</h1><p className="text-sm text-slate-500">管理画面 · 回収申込</p></div>
-          <button onClick={() => { if (window.confirm('ログアウトしますか？')) logout() }} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">ログアウト</button>
-        </div>
-      </header>
+      <AdminDashboardHeader
+        title="注文一覧"
+        subtitle="管理画面 · 回収申込"
+        currentSection="orders"
+        onLogout={() => { if (window.confirm('ログアウトしますか？')) logout() }}
+      />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}

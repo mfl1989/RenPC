@@ -12,7 +12,14 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U recycle -d recycle']
+      test: [ 'CMD-SHELL', 'pg_isready -U recycle -d recycle' ]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  mailpit:
+    image: axllent/mailpit:v1.24
+    container_name: recycle-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"

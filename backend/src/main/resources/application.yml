@@ -26,14 +26,21 @@ spring:
   mail:
     host: ${MAIL_HOST:}
     port: ${MAIL_PORT:587}
+    protocol: ${MAIL_PROTOCOL:smtp}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
           auth: ${MAIL_SMTP_AUTH:true}
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT_MS:10000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:10000}
+          ssl:
+            enable: ${MAIL_SMTP_SSL_ENABLE:false}
           starttls:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
 
 # JWT 設定（MVP: HS256）
 jwt:
@@ -50,6 +57,11 @@ admin:
 notification:
   mail:
     enabled: ${NOTIFICATION_MAIL_ENABLED:false}
-    from: ${NOTIFICATION_MAIL_FROM:no-reply@example.local}
+    from: ${NOTIFICATION_MAIL_FROM:}
+    from-name: ${NOTIFICATION_MAIL_FROM_NAME:}
     reply-to: ${NOTIFICATION_MAIL_REPLY_TO:}
+    contact-admin-to: ${CONTACT_INQUIRY_ADMIN_TO:}
+    company-name: ${NOTIFICATION_COMPANY_NAME:RenPC}
+    support-desk-name: ${NOTIFICATION_SUPPORT_DESK_NAME:RenPCカスタマーサポート}
+    support-hours: ${NOTIFICATION_SUPPORT_HOURS:平日 9:00〜18:00（土日祝日・年末年始を除く）}
     public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}

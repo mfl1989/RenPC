@@ -177,7 +177,7 @@ export default function ContactPage() {
                   受付日時：{new Date(submitted.createdAt).toLocaleString('ja-JP')}
                 </p>
                 <p className="mt-3 text-sm leading-7 text-emerald-900/90">
-                  このデモではブラウザ内に保存しています。正式版では API 送信と返信案内に差し替えてください。
+                  内容を確認のうえ、担当者より順次ご案内します。通知メール設定が有効な環境では受付メールも送信されます。
                 </p>
                 <button
                   type="button"

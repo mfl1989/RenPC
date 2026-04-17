@@ -1,10 +1,10 @@
+import axios, { isAxiosError } from 'axios'
 import type { ContactInquiryValues } from '../schemas/contactInquirySchema.ts'
 
-const STORAGE_KEY = 'recycle-pc-contact-inquiries'
-
-interface StoredContactInquiry extends ContactInquiryValues {
-  inquiryId: string
-  createdAt: string
+interface ApiEnvelope<T> {
+  code: number
+  message: string
+  data: T | null
 }
 
 export interface ContactInquiryResult {
@@ -12,30 +12,38 @@ export interface ContactInquiryResult {
   createdAt: string
 }
 
-function createInquiryId() {
-  return `CI${Date.now().toString().slice(-10)}`
+function messageFromAxiosError(error: unknown): string {
+  if (isAxiosError(error)) {
+    const body = error.response?.data
+    if (body && typeof body === 'object' && 'message' in body) {
+      const message = (body as ApiEnvelope<unknown>).message
+      if (typeof message === 'string' && message.trim() !== '') {
+        return message
+      }
+    }
+    if (error.code === 'ERR_NETWORK') {
+      return 'サーバーに接続できません。バックエンドが起動しているか確認してください。'
+    }
+  }
+  return '送信に失敗しました。しばらくしてから再度お試しください。'
 }
 
 export async function submitContactInquiry(
   payload: ContactInquiryValues,
 ): Promise<ContactInquiryResult> {
-  const inquiry = {
-    ...payload,
-    inquiryId: createInquiryId(),
-    createdAt: new Date().toISOString(),
-  } satisfies StoredContactInquiry
-
-  const current = globalThis.localStorage?.getItem(STORAGE_KEY)
-  const existing = current ? (JSON.parse(current) as StoredContactInquiry[]) : []
-
-  globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify([inquiry, ...existing]))
-
-  await new Promise((resolve) => {
-    globalThis.setTimeout(resolve, 700)
-  })
-
-  return {
-    inquiryId: inquiry.inquiryId,
-    createdAt: inquiry.createdAt,
+  try {
+    const { data } = await axios.post<ApiEnvelope<ContactInquiryResult>>('/api/contact-inquiries', payload)
+    if (data.code !== 200 || data.data == null) {
+      throw new Error(data.message || '送信に失敗しました')
+    }
+    return data.data
+  } catch (error) {
+    if (isAxiosError(error)) {
+      throw new Error(messageFromAxiosError(error))
+    }
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(messageFromAxiosError(error))
   }
 }

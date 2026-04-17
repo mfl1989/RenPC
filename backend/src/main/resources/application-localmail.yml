@@ -1,0 +1,27 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025
+    username:
+    password:
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: false
+          ssl:
+            enable: false
+          starttls:
+            enable: false
+            required: false
+
+notification:
+  mail:
+    enabled: true
+    from: no-reply@renpc.local
+    from-name: RenPC
+    reply-to: support@renpc.local
+    contact-admin-to: ops@renpc.local
+    company-name: RenPC
+    support-desk-name: RenPCサポート窓口
+    support-hours: 平日 10:00〜17:00

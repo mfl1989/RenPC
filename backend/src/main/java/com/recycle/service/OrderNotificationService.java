@@ -1,14 +1,15 @@
 package com.recycle.service;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.recycle.config.NotificationMailProperties;
 import com.recycle.entity.RecycleOrder;
 import com.recycle.util.OrderIdFormatUtil;
 
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,14 +28,14 @@ public class OrderNotificationService {
     public void sendOrderSubmitted(RecycleOrder order, String statusLabel, String progressSummary) {
         sendMail(
                 order,
-                "【RenPC】お申し込みを受け付けました",
+                subjectPrefix() + "回収お申し込み受付のお知らせ",
                 buildSubmittedBody(order, statusLabel, progressSummary));
     }
 
     public void sendOrderStatusUpdated(RecycleOrder order, String statusLabel, String progressSummary) {
         sendMail(
                 order,
-                "【RenPC】お申し込み状況を更新しました",
+                subjectPrefix() + "回収お申し込み状況更新のお知らせ",
                 buildStatusUpdatedBody(order, statusLabel, progressSummary));
     }
 
@@ -51,14 +52,16 @@ public class OrderNotificationService {
         }
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(order.getEmail());
-            message.setFrom(properties.getFrom());
-            if (properties.getReplyTo() != null && !properties.getReplyTo().isBlank()) {
-                message.setReplyTo(properties.getReplyTo());
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setTo(order.getEmail());
+            helper.setFrom(resolveFromAddress(), trimToNull(properties.getFromName()));
+            String replyTo = trimToNull(properties.getReplyTo());
+            if (replyTo != null) {
+                helper.setReplyTo(replyTo, defaultSupportDeskName());
             }
-            message.setSubject(subject);
-            message.setText(body);
+            helper.setSubject(subject);
+            helper.setText(body, false);
             mailSender.send(message);
             log.info("通知メールを送信しました。orderId={}", order.getId());
         } catch (Exception ex) {
@@ -68,16 +71,21 @@ public class OrderNotificationService {
 
     private String buildSubmittedBody(RecycleOrder order, String statusLabel, String progressSummary) {
         return safeContactName(order) + " 様\n\n"
-                + "回収のお申し込みを受け付けました。\n\n"
+                + defaultCompanyName() + " の回収サービスへお申し込みいただき、ありがとうございます。\n"
+                + "以下の内容でお申し込みを受け付けました。\n\n"
                 + commonBody(order, statusLabel, progressSummary)
-                + "\n担当者が内容を確認後、メールまたはお電話でご連絡いたします。\n";
+                + "\n内容確認のうえ、必要に応じて " + defaultSupportDeskName() + " よりご連絡いたします。\n"
+                + "段ボール配送や回収手配に関する追加確認が必要な場合は、メールまたはお電話でご案内します。\n\n"
+                + buildFooter();
     }
 
     private String buildStatusUpdatedBody(RecycleOrder order, String statusLabel, String progressSummary) {
         return safeContactName(order) + " 様\n\n"
-                + "お申し込み状況を更新しました。\n\n"
+                + "お申し込み状況を更新しました。現在の内容は以下のとおりです。\n\n"
                 + commonBody(order, statusLabel, progressSummary)
-                + "\n最新状況は注文照会ページからも確認できます。\n";
+                + "\n最新状況は注文照会ページからもご確認いただけます。\n"
+                + "本メールと行き違いで追加のご案内をお送りする場合があります。\n\n"
+                + buildFooter();
     }
 
     private String commonBody(RecycleOrder order, String statusLabel, String progressSummary) {
@@ -93,6 +101,53 @@ public class OrderNotificationService {
                 + customerNoteBlock
                 + "照会ページ: " + baseUrl + "/orders/lookup\n"
                 + "照会時は、お申し込み番号とメールアドレス（" + order.getEmail() + "）をご利用ください。\n";
+    }
+
+    private String buildFooter() {
+        StringBuilder footer = new StringBuilder();
+        footer.append("------------------------------\n")
+                .append(defaultSupportDeskName()).append("\n")
+                .append(defaultCompanyName()).append("\n")
+                .append("受付時間: ").append(defaultSupportHours()).append("\n")
+                .append("お問い合わせフォーム: ").append(normalizeBaseUrl(properties.getPublicBaseUrl())).append("/contact\n");
+        String replyTo = trimToNull(properties.getReplyTo());
+        if (replyTo != null) {
+            footer.append("返信先メールアドレス: ").append(replyTo).append("\n");
+        }
+        footer.append("このメールは送信専用です。\n");
+        return footer.toString();
+    }
+
+    private String subjectPrefix() {
+        return "【" + defaultCompanyName() + "】";
+    }
+
+    private String resolveFromAddress() {
+        String from = trimToNull(properties.getFrom());
+        return from != null ? from : "no-reply@example.local";
+    }
+
+    private String defaultCompanyName() {
+        String value = trimToNull(properties.getCompanyName());
+        return value != null ? value : "RenPC";
+    }
+
+    private String defaultSupportDeskName() {
+        String value = trimToNull(properties.getSupportDeskName());
+        return value != null ? value : defaultCompanyName() + "カスタマーサポート";
+    }
+
+    private String defaultSupportHours() {
+        String value = trimToNull(properties.getSupportHours());
+        return value != null ? value : "平日 9:00〜18:00（土日祝日・年末年始を除く）";
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private static String buildCustomerNoteBlock(RecycleOrder order) {

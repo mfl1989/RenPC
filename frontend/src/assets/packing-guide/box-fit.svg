@@ -1,0 +1,9 @@
+<svg width="900" height="675" viewBox="0 0 900 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="675" rx="32" fill="#F8FAFC"/>
+  <rect x="120" y="110" width="660" height="455" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="10"/>
+  <rect x="246" y="210" width="408" height="255" rx="18" fill="#E2E8F0" stroke="#64748B" stroke-width="8"/>
+  <rect x="200" y="182" width="500" height="311" rx="24" stroke="#F97316" stroke-width="10" stroke-dasharray="18 14"/>
+  <circle cx="178" cy="337" r="18" fill="#FDBA74"/>
+  <circle cx="722" cy="337" r="18" fill="#FDBA74"/>
+  <text x="450" y="548" text-anchor="middle" fill="#475569" font-size="30" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Fill empty space and keep items centered</text>
+</svg>

@@ -1,12 +1,108 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatOrderId } from '../lib/orderId.ts'
+import { contactInquirySchema } from '../schemas/contactInquirySchema.ts'
+import { submitContactInquiry } from '../services/contactInquiry.ts'
 import {
     lookupRecycleOrder,
     type OrderLookupResult,
     type OrderStatusCode,
 } from '../services/orderApi.ts'
+
+type ChangeRequestTopic = 'collection-date' | 'time-slot' | 'contact' | 'items' | 'data-erasure' | 'other'
+
+type StoredChangeRequestSummary = {
+  orderId: number
+  email: string
+  inquiryId: string
+  createdAt: string
+  topic: ChangeRequestTopic
+  details: string
+}
+
+const CHANGE_REQUEST_STORAGE_KEY = 'recycle-order-change-request-history'
+
+const CHANGE_REQUEST_TOPIC_OPTIONS: Array<{ value: ChangeRequestTopic; label: string }> = [
+  { value: 'collection-date', label: '回収希望日の変更' },
+  { value: 'time-slot', label: '時間帯の変更' },
+  { value: 'contact', label: '連絡先情報の変更' },
+  { value: 'items', label: '回収品目の変更' },
+  { value: 'data-erasure', label: 'データ消去方法の変更' },
+  { value: 'other', label: 'その他の変更相談' },
+] as const
+
+function getChangeTopicLabel(topic: ChangeRequestTopic): string {
+  return CHANGE_REQUEST_TOPIC_OPTIONS.find((option) => option.value === topic)?.label ?? '変更依頼'
+}
+
+function loadStoredChangeRequests(): StoredChangeRequestSummary[] {
+  try {
+    const raw = localStorage.getItem(CHANGE_REQUEST_STORAGE_KEY)
+    if (!raw) {
+      return []
+    }
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+    return parsed.filter((item): item is StoredChangeRequestSummary => {
+      if (!item || typeof item !== 'object') {
+        return false
+      }
+      const record = item as Record<string, unknown>
+      return typeof record.orderId === 'number'
+        && typeof record.email === 'string'
+        && typeof record.inquiryId === 'string'
+        && typeof record.createdAt === 'string'
+        && typeof record.topic === 'string'
+        && typeof record.details === 'string'
+    })
+  } catch {
+    return []
+  }
+}
+
+function saveStoredChangeRequests(records: StoredChangeRequestSummary[]): void {
+  localStorage.setItem(CHANGE_REQUEST_STORAGE_KEY, JSON.stringify(records.slice(0, 10)))
+}
+
+function canSubmitChangeRequest(statusCode: OrderStatusCode): boolean {
+  return statusCode === 'RECEIVED' || statusCode === 'KIT_SHIPPED'
+}
+
+function categoryFromChangeTopic(topic: ChangeRequestTopic): 'items' | 'schedule' | 'status' | 'data-erasure' | 'other' {
+  switch (topic) {
+    case 'collection-date':
+    case 'time-slot':
+      return 'schedule'
+    case 'items':
+      return 'items'
+    case 'data-erasure':
+      return 'data-erasure'
+    case 'contact':
+      return 'status'
+    case 'other':
+      return 'other'
+  }
+}
+
+function buildChangeRequestMessage(params: {
+  topic: ChangeRequestTopic
+  details: string
+  result: OrderLookupResult
+}): string {
+  const topicLabel = getChangeTopicLabel(params.topic)
+  return [
+    `変更種別: ${topicLabel}`,
+    `対象注文: ${formatOrderId(params.result.orderId)}`,
+    `現在の回収希望日: ${params.result.collectionDate}`,
+    `現在の時間帯: ${params.result.collectionTimeSlot}`,
+    '',
+    'ご依頼内容:',
+    params.details.trim(),
+  ].join('\n')
+}
 
 const ORDER_PROGRESS_STEPS: Array<{
   code: Exclude<OrderStatusCode, 'CANCELLED'>
@@ -200,10 +296,36 @@ export default function OrderLookupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<OrderLookupResult | null>(null)
+  const [changeTopic, setChangeTopic] = useState<ChangeRequestTopic>('collection-date')
+  const [changeDetails, setChangeDetails] = useState('')
+  const [changeConsent, setChangeConsent] = useState(false)
+  const [changeSubmitting, setChangeSubmitting] = useState(false)
+  const [changeError, setChangeError] = useState<string | null>(null)
+  const [changeSuccess, setChangeSuccess] = useState<{ inquiryId: string; createdAt: string } | null>(null)
+  const [storedChangeRequest, setStoredChangeRequest] = useState<StoredChangeRequestSummary | null>(null)
 
   const currentStepIndex = result ? getCurrentStepIndex(result.orderStatusCode) : -1
   const changeRequestGuide = result ? getChangeRequestGuide(result.orderStatusCode) : null
   const communicationGuide = result ? getStatusCommunicationGuide(result.orderStatusCode) : null
+
+  useEffect(() => {
+    setChangeTopic('collection-date')
+    setChangeDetails('')
+    setChangeConsent(false)
+    setChangeError(null)
+    setChangeSuccess(null)
+  }, [result?.orderId])
+
+  useEffect(() => {
+    if (!result) {
+      setStoredChangeRequest(null)
+      return
+    }
+    const matched = loadStoredChangeRequests().find(
+      (record) => record.orderId === result.orderId && record.email === result.email,
+    )
+    setStoredChangeRequest(matched ?? null)
+  }, [result])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -228,6 +350,58 @@ export default function OrderLookupPage() {
       setError(submitError instanceof Error ? submitError.message : '照会に失敗しました。')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleChangeRequestSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!result || changeSubmitting || !canSubmitChangeRequest(result.orderStatusCode)) {
+      return
+    }
+
+    const payload = {
+      name: result.contactName,
+      email: result.email,
+      category: categoryFromChangeTopic(changeTopic),
+      orderId: String(result.orderId),
+      message: buildChangeRequestMessage({ topic: changeTopic, details: changeDetails, result }),
+      privacyConsent: changeConsent,
+    }
+
+    const parsed = contactInquirySchema.safeParse(payload)
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0]
+      setChangeError(firstIssue?.message ?? '変更依頼の入力内容を確認してください。')
+      return
+    }
+
+    setChangeSubmitting(true)
+    setChangeError(null)
+    try {
+      const response = await submitContactInquiry(parsed.data)
+      setChangeSuccess(response)
+      const storedRecord: StoredChangeRequestSummary = {
+        orderId: result.orderId,
+        email: result.email,
+        inquiryId: response.inquiryId,
+        createdAt: response.createdAt,
+        topic: changeTopic,
+        details: changeDetails.trim(),
+      }
+      const nextRecords = [
+        storedRecord,
+        ...loadStoredChangeRequests().filter(
+          (record) => !(record.orderId === result.orderId && record.email === result.email),
+        ),
+      ]
+      saveStoredChangeRequests(nextRecords)
+      setStoredChangeRequest(storedRecord)
+      setChangeDetails('')
+      setChangeConsent(false)
+    } catch (submitError) {
+      setChangeError(submitError instanceof Error ? submitError.message : '変更依頼の送信に失敗しました。')
+    } finally {
+      setChangeSubmitting(false)
     }
   }
 
@@ -408,6 +582,14 @@ export default function OrderLookupPage() {
                     <p className="mt-2 text-base font-semibold">{changeRequestGuide.title}</p>
                     <p className="mt-3 text-sm leading-7">{changeRequestGuide.body}</p>
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      {canSubmitChangeRequest(result.orderStatusCode) ? (
+                        <a
+                          href="#change-request-form"
+                          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-current/20 bg-white px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-px"
+                        >
+                          この画面から変更依頼を送る
+                        </a>
+                      ) : null}
                       <Link
                         to="/contact"
                         className="inline-flex min-h-11 items-center justify-center rounded-xl border border-current/20 bg-white px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-px"
@@ -416,6 +598,147 @@ export default function OrderLookupPage() {
                       </Link>
                     </div>
                   </div>
+                ) : null}
+
+                {canSubmitChangeRequest(result.orderStatusCode) ? (
+                  <section
+                    id="change-request-form"
+                    className="mt-5 rounded-2xl border border-sky-200 bg-white/95 p-4 shadow-sm sm:p-5"
+                  >
+                    <div className="border-b border-sky-100 pb-4">
+                      <p className="text-xs font-semibold tracking-[0.08em] text-sky-700">申込後の変更依頼</p>
+                      <h3 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-slate-950">
+                        この画面から変更希望を送信できます
+                      </h3>
+                      <p className="mt-2 text-sm leading-7 text-slate-600">
+                        回収希望日や時間帯、ご連絡先、回収品目の変更希望を送信できます。受付後、担当窓口で確認し、必要に応じてメールまたはお電話でご案内します。
+                      </p>
+                    </div>
+
+                    {changeSuccess ? (
+                      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-7 text-emerald-950">
+                        <p className="font-semibold">変更依頼を受け付けました</p>
+                        <p className="mt-2">
+                          受付番号: {changeSuccess.inquiryId}
+                          <br />
+                          受付日時: {new Date(changeSuccess.createdAt).toLocaleString('ja-JP')}
+                        </p>
+                        <p className="mt-2">
+                          内容確認後、必要に応じて登録メールアドレス宛てにご連絡します。追加の修正がある場合は、この受付番号を添えてお問い合わせください。
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {storedChangeRequest ? (
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
+                        <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">直近の変更依頼</p>
+                        <p className="mt-2 font-semibold text-slate-900">
+                          {getChangeTopicLabel(storedChangeRequest.topic)}
+                        </p>
+                        <p className="mt-2 text-sm leading-7 whitespace-pre-wrap">{storedChangeRequest.details}</p>
+                        <p className="mt-3 text-xs leading-6 text-slate-500">
+                          受付番号: {storedChangeRequest.inquiryId}
+                          <br />
+                          送信日時: {new Date(storedChangeRequest.createdAt).toLocaleString('ja-JP')}
+                        </p>
+                        <p className="mt-2 text-xs leading-6 text-slate-500">
+                          追加で送信する前に、すでに同内容を送っていないかご確認ください。
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <form className="mt-4 space-y-4" onSubmit={handleChangeRequestSubmit}>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="mb-2 block text-sm font-semibold text-slate-700">お申し込み番号</p>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900">
+                            {formatOrderId(result.orderId)}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-2 block text-sm font-semibold text-slate-700">登録メールアドレス</p>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 break-all">
+                            {result.email}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="changeTopic" className="mb-2 block text-sm font-semibold text-slate-700">
+                          変更したい内容
+                        </label>
+                        <select
+                          id="changeTopic"
+                          value={changeTopic}
+                          onChange={(event) => setChangeTopic(event.target.value as ChangeRequestTopic)}
+                          className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-100"
+                        >
+                          {CHANGE_REQUEST_TOPIC_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="changeDetails" className="mb-2 block text-sm font-semibold text-slate-700">
+                          ご依頼内容
+                        </label>
+                        <textarea
+                          id="changeDetails"
+                          value={changeDetails}
+                          onChange={(event) => {
+                            setChangeDetails(event.target.value)
+                            setChangeError(null)
+                          }}
+                          rows={6}
+                          className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-7 text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-100"
+                          placeholder="例: 回収希望日を 4月25日 から 4月27日 に変更したいです。時間帯は午後希望です。"
+                        />
+                        <p className="mt-2 text-xs leading-6 text-slate-500">
+                          変更後の希望内容を具体的にご入力ください。回収希望日、時間帯、連絡先、品目変更などが分かると確認が早くなります。
+                        </p>
+                      </div>
+
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={changeConsent}
+                          onChange={(event) => {
+                            setChangeConsent(event.target.checked)
+                            setChangeError(null)
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                        />
+                        <span>
+                          個人情報保護方針に同意のうえ、変更依頼を送信します。
+                          <span className="mt-1 block text-xs leading-6 text-slate-500">
+                            送信内容は変更依頼の確認およびご連絡のために利用します。
+                          </span>
+                        </span>
+                      </label>
+
+                      {changeError ? (
+                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                          {changeError}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs leading-6 text-slate-500">
+                          原則として回収日前日の15時まで受け付けます。締切後は内容により対応できない場合があります。
+                        </p>
+                        <button
+                          type="submit"
+                          disabled={changeSubmitting}
+                          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {changeSubmitting ? '送信中…' : '変更依頼を送信する'}
+                        </button>
+                      </div>
+                    </form>
+                  </section>
                 ) : null}
 
                 {communicationGuide ? (
@@ -469,10 +792,22 @@ export default function OrderLookupPage() {
                     <p className="mt-2 text-sm font-semibold leading-6 text-slate-900">{result.collectionTimeSlot}</p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 sm:col-span-2">
-                    <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">受付金額</p>
-                    <p className="mt-2 text-lg font-semibold leading-6 text-slate-900 tabular-nums">
-                      {result.totalAmount.toLocaleString()} 円
+                    <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">
+                      {result.pricingConfirmed ? '正式金額' : '受付金額'}
                     </p>
+                    <p className="mt-2 text-lg font-semibold leading-6 text-slate-900 tabular-nums">
+                      {(result.pricingConfirmed && result.finalAmount != null ? result.finalAmount : result.totalAmount).toLocaleString()} 円
+                    </p>
+                    <p className="mt-2 text-xs leading-6 text-slate-500">
+                      {result.pricingConfirmed
+                        ? `確定日時: ${result.pricingConfirmedAt || '反映済み'}`
+                        : 'センター到着後の内容確認をもとに、完了前に正式金額を確定します。'}
+                    </p>
+                    {result.pricingConfirmed && result.finalAmount != null && result.finalAmount !== result.totalAmount ? (
+                      <p className="mt-1 text-xs leading-6 text-slate-500">
+                        受付金額: {result.totalAmount.toLocaleString()} 円
+                      </p>
+                    ) : null}
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 sm:col-span-2">
                     <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">受付日時</p>

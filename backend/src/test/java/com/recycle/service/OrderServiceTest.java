@@ -27,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.recycle.dto.OrderDetailResponseDTO;
 import com.recycle.dto.OrderLookupResponseDTO;
+import com.recycle.dto.OrderPricingConfirmRequestDTO;
 import com.recycle.entity.Contact;
 import com.recycle.entity.OrderInternalNoteHistory;
 import com.recycle.entity.OrderStatusHistory;
@@ -185,6 +186,47 @@ class OrderServiceTest {
         }
 
         @Test
+        void updateAdminOrderStatus_requiresPricingConfirmationBeforeCompletion() {
+                RecycleOrder order = buildOrder();
+                com.recycle.dto.OrderStatusUpdateRequestDTO request = com.recycle.dto.OrderStatusUpdateRequestDTO
+                                .builder()
+                                .status("COMPLETED")
+                                .version(0L)
+                                .statusChangeReason("処理が完了したため")
+                                .build();
+                when(recycleOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+                IllegalArgumentException exception = assertThrows(
+                                IllegalArgumentException.class,
+                                () -> orderService.updateAdminOrderStatus(1L, request));
+
+                assertEquals("完了にする前に正式料金を確定してください", exception.getMessage());
+                verify(orderNotificationService, never()).sendOrderStatusUpdated(any(), any(), any());
+        }
+
+        @Test
+        void confirmAdminOrderPricing_updatesPricingFields() {
+                RecycleOrder order = buildOrder();
+                SecurityContextHolder.getContext().setAuthentication(
+                                new UsernamePasswordAuthenticationToken("admin", null, java.util.List.of()));
+                OrderPricingConfirmRequestDTO request = OrderPricingConfirmRequestDTO.builder()
+                                .finalAmount(3550)
+                                .version(0L)
+                                .pricingConfirmationNote("到着品の内容確認の結果、正式料金を確定。")
+                                .build();
+                when(recycleOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+                when(recycleOrderRepository.save(any(RecycleOrder.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                orderService.confirmAdminOrderPricing(1L, request);
+
+                assertEquals(3550, order.getFinalAmount());
+                assertEquals("admin", order.getPricingConfirmedBy());
+                assertEquals("到着品の内容確認の結果、正式料金を確定。", order.getPricingConfirmationNote());
+                assertTrue(order.getPricingConfirmedAt() != null);
+        }
+
+        @Test
         void getAdminOrderList_normalizesPhoneKeywordBeforeQuery() {
                 Pageable pageable = Pageable.ofSize(20);
                 when(recycleOrderRepository.findAllWithKeyword(any(), any(), eq(pageable)))
@@ -214,6 +256,10 @@ class OrderServiceTest {
         @Test
         void getAdminOrderDetail_formatsDisplayFields() {
                 RecycleOrder order = buildOrder();
+                order.setFinalAmount(3550);
+                order.setPricingConfirmedAt(Instant.parse("2026-04-15T02:30:00Z"));
+                order.setPricingConfirmedBy("admin");
+                order.setPricingConfirmationNote("到着品の内容確認の結果、正式料金を確定。");
                 when(recycleOrderRepository.findById(1L)).thenReturn(Optional.of(order));
                 when(orderInternalNoteHistoryRepository.findByRecycleOrderIdOrderByChangedAtDesc(1L))
                                 .thenReturn(java.util.List.of(OrderInternalNoteHistory.builder()
@@ -239,6 +285,10 @@ class OrderServiceTest {
                 assertEquals("2026年4月20日", detail.getCollectionDate());
                 assertEquals("14時〜16時", detail.getCollectionTimeSlot());
                 assertEquals("2026/04/15 09:30", detail.getCreatedAt());
+                assertTrue(detail.isPricingConfirmed());
+                assertEquals(3550, detail.getFinalAmount());
+                assertEquals("2026/04/15 11:30", detail.getPricingConfirmedAt());
+                assertEquals("admin", detail.getPricingConfirmedBy());
                 assertEquals(1, detail.getInternalNoteHistories().size());
                 assertEquals("admin", detail.getInternalNoteHistories().get(0).getChangedBy());
                 assertEquals(1, detail.getStatusHistories().size());
@@ -256,6 +306,8 @@ class OrderServiceTest {
         @Test
         void lookupOrder_returnsPublicStatusSummary() {
                 RecycleOrder order = buildOrder();
+                order.setFinalAmount(3550);
+                order.setPricingConfirmedAt(Instant.parse("2026-04-15T02:30:00Z"));
                 when(recycleOrderRepository.findByIdAndEmailIgnoreCase(1L, "test@example.com"))
                                 .thenReturn(Optional.of(order));
 
@@ -267,6 +319,9 @@ class OrderServiceTest {
                 assertEquals("2026年4月20日", result.getCollectionDate());
                 assertEquals("担当者が内容を確認しています。確認後にご連絡します。", result.getProgressSummary());
                 assertEquals("2026/04/15 09:30", result.getLastUpdatedAt());
+                assertTrue(result.isPricingConfirmed());
+                assertEquals(3550, result.getFinalAmount());
+                assertEquals("2026/04/15 11:30", result.getPricingConfirmedAt());
                 assertEquals(1, result.getPcCount());
                 assertEquals(2, result.getMonitorCount());
                 assertEquals(1, result.getSmallApplianceBoxCount());

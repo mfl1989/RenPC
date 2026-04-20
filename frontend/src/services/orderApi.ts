@@ -37,6 +37,9 @@ export interface OrderLookupResult {
   createdAt: string
   lastUpdatedAt: string
   totalAmount: number
+  pricingConfirmed: boolean
+  finalAmount: number | null
+  pricingConfirmedAt: string
   pcCount: number
   monitorCount: number
   smallApplianceBoxCount: number

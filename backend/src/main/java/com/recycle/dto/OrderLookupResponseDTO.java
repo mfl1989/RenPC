@@ -25,6 +25,9 @@ public class OrderLookupResponseDTO {
     private String createdAt;
     private String lastUpdatedAt;
     private Integer totalAmount;
+    private boolean pricingConfirmed;
+    private Integer finalAmount;
+    private String pricingConfirmedAt;
     private Integer pcCount;
     private Integer monitorCount;
     private Integer smallApplianceBoxCount;

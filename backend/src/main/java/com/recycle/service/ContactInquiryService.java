@@ -71,12 +71,14 @@ public class ContactInquiryService {
 
     @Transactional(readOnly = true)
     public ContactInquiryListPageDTO getAdminInquiryList(String keyword, String status, String assignedTo,
+            Boolean changeRequestOnly,
             Pageable pageable) {
         String normalizedKeyword = trimToNull(keyword);
         String normalizedStatus = normalizeFilterStatus(status);
         String normalizedAssignedTo = trimToNull(assignedTo);
+        boolean onlyChangeRequests = Boolean.TRUE.equals(changeRequestOnly);
         Page<ContactInquiry> page = contactInquiryRepository.findAllWithKeyword(normalizedKeyword, normalizedStatus,
-                normalizedAssignedTo, pageable);
+                normalizedAssignedTo, onlyChangeRequests, pageable);
         List<ContactInquiryListResponseDTO> content = page.getContent().stream().map(this::toListResponse).toList();
 
         return ContactInquiryListPageDTO.builder()
@@ -92,16 +94,19 @@ public class ContactInquiryService {
         ContactInquiry inquiry = contactInquiryRepository.findById(Objects.requireNonNull(inquiryId))
                 .orElseThrow(() -> new ResourceNotFoundException("指定された問い合わせが存在しません"));
 
+        String message = inquiry.getMessage();
         return ContactInquiryDetailResponseDTO.builder()
                 .inquiryId(inquiry.getId())
                 .version(inquiry.getVersion())
                 .name(inquiry.getName())
                 .email(inquiry.getEmail())
                 .category(formatCategory(inquiry.getCategory()))
+                .changeRequest(isChangeRequestMessage(message))
+                .changeRequestTopic(extractChangeRequestTopic(message))
                 .inquiryStatus(formatStatus(inquiry.getInquiryStatus()))
                 .assignedTo(inquiry.getAssignedTo())
                 .orderReference(inquiry.getOrderReference())
-                .message(inquiry.getMessage())
+                .message(message)
                 .adminNote(inquiry.getAdminNote())
                 .privacyConsented(inquiry.isPrivacyConsented())
                 .createdAt(formatDateTime(inquiry.getCreatedAt()))
@@ -131,11 +136,14 @@ public class ContactInquiryService {
     }
 
     private ContactInquiryListResponseDTO toListResponse(ContactInquiry inquiry) {
+        String message = inquiry.getMessage();
         return ContactInquiryListResponseDTO.builder()
                 .inquiryId(inquiry.getId())
                 .name(inquiry.getName())
                 .email(inquiry.getEmail())
                 .category(formatCategory(inquiry.getCategory()))
+                .changeRequest(isChangeRequestMessage(message))
+                .changeRequestTopic(extractChangeRequestTopic(message))
                 .inquiryStatus(formatStatus(inquiry.getInquiryStatus()))
                 .assignedTo(inquiry.getAssignedTo())
                 .orderReference(inquiry.getOrderReference())
@@ -171,6 +179,25 @@ public class ContactInquiryService {
             case "other" -> "その他";
             default -> category;
         };
+    }
+
+    private static boolean isChangeRequestMessage(String message) {
+        return extractChangeRequestTopic(message) != null;
+    }
+
+    private static String extractChangeRequestTopic(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        String prefix = "変更種別:";
+        for (String line : message.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith(prefix)) {
+                String topic = trimmed.substring(prefix.length()).trim();
+                return topic.isBlank() ? null : topic;
+            }
+        }
+        return null;
     }
 
     private static String formatStatus(String status) {

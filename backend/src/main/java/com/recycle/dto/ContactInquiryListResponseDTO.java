@@ -18,6 +18,8 @@ public class ContactInquiryListResponseDTO {
     private String name;
     private String email;
     private String category;
+    private boolean changeRequest;
+    private String changeRequestTopic;
     private String inquiryStatus;
     private String assignedTo;
     private String orderReference;

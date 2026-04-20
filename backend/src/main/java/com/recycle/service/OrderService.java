@@ -23,6 +23,7 @@ import com.recycle.dto.OrderInternalNoteHistoryResponseDTO;
 import com.recycle.dto.OrderListPageDTO;
 import com.recycle.dto.OrderListResponseDTO;
 import com.recycle.dto.OrderLookupResponseDTO;
+import com.recycle.dto.OrderPricingConfirmRequestDTO;
 import com.recycle.dto.OrderStatusHistoryResponseDTO;
 import com.recycle.dto.OrderStatusUpdateRequestDTO;
 import com.recycle.dto.OrderSubmitRequestDTO;
@@ -160,6 +161,9 @@ public class OrderService {
         if (!isValidStatusTransition(currentStatus, nextStatus)) {
             throw new IllegalArgumentException("不正なステータス遷移です");
         }
+        if (nextStatus == OrderStatus.COMPLETED && !isPricingConfirmed(order)) {
+            throw new IllegalArgumentException("完了にする前に正式料金を確定してください");
+        }
         if (statusChanged && trimToBlankAsNull(dto.getStatusChangeReason()) == null) {
             throw new IllegalArgumentException("ステータス変更時は理由を入力してください");
         }
@@ -182,6 +186,37 @@ public class OrderService {
                 formatOrderProgressSummary(saved.getOrderStatus()));
     }
 
+    /**
+     * 管理画面用：正式料金を確定する。
+     */
+    @Transactional
+    public void confirmAdminOrderPricing(Long orderId, OrderPricingConfirmRequestDTO dto) {
+        RecycleOrder order = recycleOrderRepository
+                .findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("指定された注文が存在しません"));
+
+        if (dto.getVersion() == null || !dto.getVersion().equals(order.getVersion())) {
+            throw new ObjectOptimisticLockingFailureException(RecycleOrder.class, orderId);
+        }
+        if (order.getOrderStatus() == OrderStatus.COMPLETED || order.getOrderStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException("完了済みまたはキャンセル済みの注文では料金確定を更新できません");
+        }
+
+        String confirmationNote = trimToBlankAsNull(dto.getPricingConfirmationNote());
+        if (confirmationNote == null) {
+            throw new IllegalArgumentException("料金確定メモを入力してください");
+        }
+
+        order.setFinalAmount(dto.getFinalAmount());
+        order.setPricingConfirmedAt(Instant.now(clock));
+        order.setPricingConfirmedBy(currentOperator());
+        order.setPricingConfirmationNote(confirmationNote);
+
+        RecycleOrder saved = recycleOrderRepository.save(order);
+        log.info("正式料金を確定しました。orderId={}, finalAmount={}, operator={}", saved.getId(),
+                saved.getFinalAmount(), saved.getPricingConfirmedBy());
+    }
+
     private OrderListResponseDTO toOrderListResponse(RecycleOrder o) {
         Instant created = o.getCreatedAt();
         String createdAtStr = created != null ? CREATED_AT_FORMAT.format(created) : "";
@@ -194,6 +229,8 @@ public class OrderService {
                 .collectionTime(formatTimeSlot(o.getCollectionTimeSlot()))
                 .orderStatus(o.getOrderStatus().name())
                 .totalAmount(o.getTotalAmount())
+                .pricingConfirmed(isPricingConfirmed(o))
+                .finalAmount(o.getFinalAmount())
                 .createdAt(createdAtStr)
                 .version(o.getVersion())
                 .build();
@@ -360,7 +397,7 @@ public class OrderService {
 
         StringBuilder csv = new StringBuilder();
         csv.append('\ufeff');
-        csv.append("注文ID,氏名,電話番号,ステータス,金額,申込日時\n");
+        csv.append("注文ID,氏名,電話番号,ステータス,受付金額,正式金額,料金状態,申込日時\n");
 
         for (RecycleOrder order : orders) {
             csv.append(csvCell(String.valueOf(order.getId()))).append(",");
@@ -368,6 +405,9 @@ public class OrderService {
             csv.append(csvCell(order.getPhone())).append(",");
             csv.append(csvCell(formatOrderStatus(order.getOrderStatus()))).append(",");
             csv.append(csvCell(String.valueOf(order.getTotalAmount()))).append(",");
+            csv.append(csvCell(order.getFinalAmount() == null ? "" : String.valueOf(order.getFinalAmount())))
+                    .append(",");
+            csv.append(csvCell(isPricingConfirmed(order) ? "正式料金確定済" : "受付金額（未確定）")).append(",");
             csv.append(csvCell(formatCreatedAt(order.getCreatedAt()))).append("\n");
         }
 
@@ -392,6 +432,11 @@ public class OrderService {
                 .collectionDate(order.getCollectionDate().format(COLLECTION_DATE_FORMAT))
                 .collectionTimeSlot(formatTimeSlot(order.getCollectionTimeSlot()))
                 .totalAmount(order.getTotalAmount())
+                .pricingConfirmed(isPricingConfirmed(order))
+                .finalAmount(order.getFinalAmount())
+                .pricingConfirmedAt(formatCreatedAt(order.getPricingConfirmedAt()))
+                .pricingConfirmedBy(order.getPricingConfirmedBy())
+                .pricingConfirmationNote(order.getPricingConfirmationNote())
                 .createdAt(formatCreatedAt(order.getCreatedAt()))
                 .lastUpdatedAt(formatLastUpdatedAt(order))
                 .pcCount(order.getPcCount())
@@ -441,6 +486,9 @@ public class OrderService {
                 .createdAt(formatCreatedAt(order.getCreatedAt()))
                 .lastUpdatedAt(formatLastUpdatedAt(order))
                 .totalAmount(order.getTotalAmount())
+                .pricingConfirmed(isPricingConfirmed(order))
+                .finalAmount(order.getFinalAmount())
+                .pricingConfirmedAt(formatCreatedAt(order.getPricingConfirmedAt()))
                 .pcCount(order.getPcCount())
                 .monitorCount(order.getMonitorCount())
                 .smallApplianceBoxCount(order.getSmallApplianceBoxCount())
@@ -448,6 +496,10 @@ public class OrderService {
                 .cardboardDeliveryLabel(formatCardboardDelivery(order.isCardboardDeliveryRequested()))
                 .customerNote(order.getCustomerNote())
                 .build();
+    }
+
+    private static boolean isPricingConfirmed(RecycleOrder order) {
+        return order != null && order.getFinalAmount() != null && order.getPricingConfirmedAt() != null;
     }
 
     private static int calculateTotalAmount(OrderSubmitRequestDTO dto) {
@@ -508,6 +560,14 @@ public class OrderService {
             updatedAt = order.getCreatedAt();
         }
         return formatCreatedAt(updatedAt);
+    }
+
+    private static String currentOperator() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            return "system";
+        }
+        return authentication.getName();
     }
 
     private static String csvCell(String value) {

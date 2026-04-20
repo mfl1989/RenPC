@@ -64,11 +64,12 @@ class ContactInquiryAdminServiceTest {
                 when(contactInquiryRepository.countByInquiryStatus("OPEN")).thenReturn(2L);
                 when(contactInquiryRepository.countByInquiryStatus("IN_PROGRESS")).thenReturn(1L);
                 when(contactInquiryRepository.countByInquiryStatus("RESOLVED")).thenReturn(4L);
-                when(contactInquiryRepository.findAllWithKeyword(eq("demo"), eq("OPEN"), eq("田中"), eq(pageable)))
+                when(contactInquiryRepository.findAllWithKeyword(eq("demo"), eq("OPEN"), eq("田中"), eq(false),
+                                eq(pageable)))
                                 .thenReturn(new PageImpl<>(java.util.List.of(inquiry), pageable, 1));
 
                 ContactInquiryListPageDTO result = contactInquiryService.getAdminInquiryList("demo", "OPEN", "田中",
-                                pageable);
+                                false, pageable);
 
                 assertEquals(1, result.getContent().size());
                 assertEquals(3L, result.getContent().get(0).getInquiryId());
@@ -87,11 +88,12 @@ class ContactInquiryAdminServiceTest {
                 when(contactInquiryRepository.countByInquiryStatus("OPEN")).thenReturn(0L);
                 when(contactInquiryRepository.countByInquiryStatus("IN_PROGRESS")).thenReturn(0L);
                 when(contactInquiryRepository.countByInquiryStatus("RESOLVED")).thenReturn(0L);
-                when(contactInquiryRepository.findAllWithKeyword(eq(null), eq(null), eq(null), eq(pageable)))
+                when(contactInquiryRepository.findAllWithKeyword(eq(null), eq(null), eq(null), eq(false),
+                                eq(pageable)))
                                 .thenReturn(new PageImpl<>(java.util.List.of(), pageable, 0));
 
                 ContactInquiryListPageDTO result = contactInquiryService.getAdminInquiryList(null, null, null,
-                                pageable);
+                                false, pageable);
 
                 assertEquals(0, result.getContent().size());
         }
@@ -102,13 +104,39 @@ class ContactInquiryAdminServiceTest {
                 when(contactInquiryRepository.countByInquiryStatus("OPEN")).thenReturn(0L);
                 when(contactInquiryRepository.countByInquiryStatus("IN_PROGRESS")).thenReturn(0L);
                 when(contactInquiryRepository.countByInquiryStatus("RESOLVED")).thenReturn(0L);
-                when(contactInquiryRepository.findAllWithKeyword(eq(null), eq("IN_PROGRESS"), eq(null), eq(pageable)))
+                when(contactInquiryRepository.findAllWithKeyword(eq(null), eq("IN_PROGRESS"), eq(null), eq(false),
+                                eq(pageable)))
                                 .thenReturn(new PageImpl<>(java.util.List.of(), pageable, 0));
 
                 ContactInquiryListPageDTO result = contactInquiryService.getAdminInquiryList(null, "in_progress", null,
-                                pageable);
+                                false, pageable);
 
                 assertEquals(0, result.getContent().size());
+        }
+
+        @Test
+        void getAdminInquiryList_marksChangeRequestRows() {
+                Pageable pageable = Pageable.ofSize(20);
+                ContactInquiry inquiry = ContactInquiry.builder()
+                                .id(8L)
+                                .name("山田 太郎")
+                                .email("demo@example.com")
+                                .category("schedule")
+                                .inquiryStatus("OPEN")
+                                .message("変更種別: 回収希望日の変更\n対象注文: 0000000008\n\nご依頼内容:\n4月25日に変更したいです。")
+                                .createdAt(Instant.parse("2026-04-17T01:30:00Z"))
+                                .build();
+                when(contactInquiryRepository.countByInquiryStatus("OPEN")).thenReturn(0L);
+                when(contactInquiryRepository.countByInquiryStatus("IN_PROGRESS")).thenReturn(0L);
+                when(contactInquiryRepository.countByInquiryStatus("RESOLVED")).thenReturn(0L);
+                when(contactInquiryRepository.findAllWithKeyword(eq(null), eq(null), eq(null), eq(true), eq(pageable)))
+                                .thenReturn(new PageImpl<>(java.util.List.of(inquiry), pageable, 1));
+
+                ContactInquiryListPageDTO result = contactInquiryService.getAdminInquiryList(null, null, null,
+                                true, pageable);
+
+                assertEquals(true, result.getContent().get(0).isChangeRequest());
+                assertEquals("回収希望日の変更", result.getContent().get(0).getChangeRequestTopic());
         }
 
         @Test

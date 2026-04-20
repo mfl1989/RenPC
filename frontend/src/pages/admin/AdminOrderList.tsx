@@ -10,12 +10,13 @@ type OrderStatusCode = 'RECEIVED' | 'KIT_SHIPPED' | 'COLLECTING' | 'ARRIVED' | '
 
 interface OrderListRow {
   orderId: number; contactName: string; contactPhone: string; collectionDate: string; collectionTime: string;
-  orderStatus: OrderStatusCode; totalAmount: number; createdAt: string; version: number;
+  orderStatus: OrderStatusCode; totalAmount: number; pricingConfirmed: boolean; finalAmount: number | null; createdAt: string; version: number;
 }
 
 // —— 【新增】订单详情的数据类型 ——
 interface OrderDetailData {
-  orderId: number; version: number; orderStatus: string; collectionDate: string; collectionTimeSlot: string; totalAmount: number; createdAt: string;
+  orderId: number; version: number; orderStatus: string; collectionDate: string; collectionTimeSlot: string; totalAmount: number;
+  pricingConfirmed: boolean; finalAmount: number | null; pricingConfirmedAt: string; pricingConfirmedBy: string | null; pricingConfirmationNote: string | null; createdAt: string;
   lastUpdatedAt: string;
   pcCount: number; monitorCount: number; smallApplianceBoxCount: number; dataErasureOption: string; cardboardDeliveryRequested: boolean;
   customerNameKanji: string; customerNameKana: string; postalCode: string; prefecture: string; city: string; addressLine1: string; addressLine2: string; phone: string; email: string; customerNote: string | null; internalNote: string | null;
@@ -47,6 +48,16 @@ function statusBadgeClass(status: string): string {
 
 function formatYen(amount: number): string { return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(amount) }
 
+function getDisplayedAmount(totalAmount: number, pricingConfirmed: boolean, finalAmount: number | null): number {
+  return pricingConfirmed && finalAmount != null ? finalAmount : totalAmount
+}
+
+function pricingBadgeClass(pricingConfirmed: boolean): string {
+  return pricingConfirmed
+    ? 'inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200'
+    : 'inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-inset ring-amber-200'
+}
+
 function getStatusLabel(status: OrderStatusCode): string {
   return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
 }
@@ -72,9 +83,14 @@ export default function AdminOrderList() {
   const [detailStatusReasonDraft, setDetailStatusReasonDraft] = useState('')
   const [detailSaving, setDetailSaving] = useState(false)
   const [detailStatusSaving, setDetailStatusSaving] = useState(false)
+  const [detailPricingDraft, setDetailPricingDraft] = useState('')
+  const [detailPricingNoteDraft, setDetailPricingNoteDraft] = useState('')
+  const [detailPricingSaving, setDetailPricingSaving] = useState(false)
   const [selectedRow, setSelectedRow] = useState<OrderListRow | null>(null)
   const [detailSaveMessage, setDetailSaveMessage] = useState<string | null>(null)
   const [detailSaveError, setDetailSaveError] = useState<string | null>(null)
+  const [detailPricingMessage, setDetailPricingMessage] = useState<string | null>(null)
+  const [detailPricingError, setDetailPricingError] = useState<string | null>(null)
   const [listActionMessage, setListActionMessage] = useState<string | null>(null)
   const [listActionError, setListActionError] = useState<string | null>(null)
 
@@ -122,6 +138,8 @@ export default function AdminOrderList() {
     setDetailData(null)
     setDetailSaveMessage(null)
     setDetailSaveError(null)
+    setDetailPricingMessage(null)
+    setDetailPricingError(null)
     setDetailStatusDraft(row.orderStatus)
     setDetailStatusReasonDraft('')
     try {
@@ -129,10 +147,63 @@ export default function AdminOrderList() {
       setDetailData(detail)
       setDetailNoteDraft(detail.customerNote ?? '')
       setDetailInternalNoteDraft(detail.internalNote ?? '')
+      setDetailPricingDraft(String(detail.finalAmount ?? detail.totalAmount))
+      setDetailPricingNoteDraft(detail.pricingConfirmationNote ?? '')
     } catch {
       alert("通信エラーが発生しました。")
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  const handleConfirmPricing = async () => {
+    if (!detailData || !selectedRow || detailPricingSaving) return
+
+    const normalizedAmount = detailPricingDraft.trim()
+    if (!/^\d+$/.test(normalizedAmount)) {
+      setDetailPricingError('正式料金は0円以上の整数で入力してください。')
+      return
+    }
+    if (!detailPricingNoteDraft.trim()) {
+      setDetailPricingError('料金確定メモを入力してください。')
+      return
+    }
+
+    setDetailPricingSaving(true)
+    setDetailPricingMessage(null)
+    setDetailPricingError(null)
+    try {
+      await axios.put(`/api/admin/orders/${detailData.orderId}/pricing`, {
+        finalAmount: Number(normalizedAmount),
+        version: detailData.version,
+        pricingConfirmationNote: detailPricingNoteDraft,
+      })
+      const refreshedDetail = await fetchOrderDetail(detailData.orderId)
+      setDetailData(refreshedDetail)
+      setDetailPricingDraft(String(refreshedDetail.finalAmount ?? refreshedDetail.totalAmount))
+      setDetailPricingNoteDraft(refreshedDetail.pricingConfirmationNote ?? '')
+      const refreshedRow = {
+        ...selectedRow,
+        version: refreshedDetail.version,
+        totalAmount: refreshedDetail.totalAmount,
+        pricingConfirmed: refreshedDetail.pricingConfirmed,
+        finalAmount: refreshedDetail.finalAmount,
+      }
+      setSelectedRow(refreshedRow)
+      setRows((current) => current.map((row) => row.orderId === refreshedRow.orderId ? refreshedRow : row))
+      setDetailPricingMessage('正式料金を確定しました。')
+      setListActionMessage(`注文 ${formatOrderId(refreshedRow.orderId)} の正式料金を確定しました。`)
+    } catch (error) {
+      if (axios.isAxiosError<ApiEnvelope<null>>(error)) {
+        setDetailPricingError(error.response?.data?.message ?? '正式料金の確定に失敗しました。')
+      } else {
+        setDetailPricingError('正式料金の確定に失敗しました。')
+      }
+      if (selectedRow) {
+        void handleOpenDetail(selectedRow)
+      }
+    } finally {
+      setDetailPricingSaving(false)
     }
   }
 
@@ -253,7 +324,16 @@ export default function AdminOrderList() {
                     <td className="px-4 py-3 text-center">
                       <span className={statusBadgeClass(row.orderStatus)}>{getStatusLabel(row.orderStatus)}</span>
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-800 font-medium">{formatYen(row.totalAmount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="tabular-nums font-medium text-slate-800">
+                          {formatYen(getDisplayedAmount(row.totalAmount, row.pricingConfirmed, row.finalAmount))}
+                        </span>
+                        <span className={pricingBadgeClass(row.pricingConfirmed)}>
+                          {row.pricingConfirmed ? '正式料金' : '受付金額'}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => handleOpenDetail(row)}
@@ -315,7 +395,84 @@ export default function AdminOrderList() {
                       <div><span className="text-sky-700 text-xs block">小型家電ダンボール</span><span className="font-bold text-lg">{detailData.smallApplianceBoxCount} 箱</span></div>
                       <div><span className="text-sky-700 text-xs block">データ消去</span><span className="font-medium">{detailData.dataErasureOption}</span></div>
                       <div><span className="text-sky-700 text-xs block">段ボール事前配送</span><span className="font-medium">{detailData.cardboardDeliveryRequested ? '希望する' : '希望しない'}</span></div>
-                      <div><span className="text-sky-700 text-xs block">合計金額</span><span className="font-bold text-xl text-red-600">{formatYen(detailData.totalAmount)}</span></div>
+                      <div><span className="text-sky-700 text-xs block">受付金額</span><span className="font-bold text-xl text-red-600">{formatYen(detailData.totalAmount)}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="bg-rose-50 p-4 rounded-lg border border-rose-100">
+                    <h4 className="font-bold text-rose-800 mb-3 border-b border-rose-200 pb-2">正式料金の確定</h4>
+                    {detailPricingMessage ? <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{detailPricingMessage}</div> : null}
+                    {detailPricingError ? <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{detailPricingError}</div> : null}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <span className="mb-1 block text-xs text-rose-700">現在の状態</span>
+                        <div className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-slate-800">
+                          <span className={pricingBadgeClass(detailData.pricingConfirmed)}>
+                            {detailData.pricingConfirmed ? '正式料金確定済' : '受付金額のまま未確定'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="mb-1 block text-xs text-rose-700">正式料金</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={detailPricingDraft}
+                          onChange={(event) => {
+                            setDetailPricingDraft(event.target.value.replace(/\D/g, ''))
+                            setDetailPricingError(null)
+                          }}
+                          disabled={detailPricingSaving || selectedRow?.orderStatus === 'COMPLETED' || selectedRow?.orderStatus === 'CANCELLED'}
+                          className="block w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                          placeholder="例: 3550"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border border-rose-200 bg-white px-3 py-3">
+                        <span className="block text-xs text-rose-700">受付金額</span>
+                        <span className="mt-1 block text-base font-semibold text-slate-900">{formatYen(detailData.totalAmount)}</span>
+                      </div>
+                      <div className="rounded-lg border border-rose-200 bg-white px-3 py-3">
+                        <span className="block text-xs text-rose-700">現在の正式金額</span>
+                        <span className="mt-1 block text-base font-semibold text-slate-900">
+                          {detailData.pricingConfirmed && detailData.finalAmount != null ? formatYen(detailData.finalAmount) : '未確定'}
+                        </span>
+                        {detailData.pricingConfirmedAt ? (
+                          <span className="mt-1 block text-xs text-slate-500">
+                            確定日時: {detailData.pricingConfirmedAt}
+                            {detailData.pricingConfirmedBy ? ` / ${detailData.pricingConfirmedBy}` : ''}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="mb-1 block text-xs text-rose-700">料金確定メモ</span>
+                      <textarea
+                        value={detailPricingNoteDraft}
+                        onChange={(event) => {
+                          setDetailPricingNoteDraft(event.target.value)
+                          setDetailPricingError(null)
+                        }}
+                        maxLength={500}
+                        rows={3}
+                        disabled={detailPricingSaving || selectedRow?.orderStatus === 'COMPLETED' || selectedRow?.orderStatus === 'CANCELLED'}
+                        className="block w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        placeholder="例: 到着品の内容確認の結果、申込どおりのため正式料金を確定。"
+                      />
+                      <div className="mt-2 flex items-center justify-between text-xs text-rose-800/80">
+                        <span>完了前に正式料金の確定が必要です。受付金額と差がある場合は理由を残してください。</span>
+                        <span>{detailPricingNoteDraft.length} / 500</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        onClick={handleConfirmPricing}
+                        disabled={detailPricingSaving || !detailPricingDraft.trim() || !detailPricingNoteDraft.trim() || selectedRow?.orderStatus === 'COMPLETED' || selectedRow?.orderStatus === 'CANCELLED'}
+                        className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {detailPricingSaving ? '確定中…' : detailData.pricingConfirmed ? '正式料金を更新する' : '正式料金を確定する'}
+                      </button>
                     </div>
                   </div>
 
@@ -344,12 +501,12 @@ export default function AdminOrderList() {
                         placeholder="例: 集荷日が確定したため。"
                       />
                       <div className="mt-2 flex items-center justify-between text-xs text-indigo-800/80">
-                        <span>ステータスを変更する場合は理由が必須です。</span>
+                        <span>ステータスを変更する場合は理由が必須です。完了にする前に正式料金を確定してください。</span>
                         <span>{detailStatusReasonDraft.length} / 500</span>
                       </div>
                     </div>
                     <div className="mt-3 flex justify-end">
-                      <button onClick={handleSaveDetailStatus} disabled={detailStatusSaving || detailStatusDraft === selectedRow?.orderStatus || !detailStatusReasonDraft.trim()} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+                      <button onClick={handleSaveDetailStatus} disabled={detailStatusSaving || detailStatusDraft === selectedRow?.orderStatus || !detailStatusReasonDraft.trim() || (detailStatusDraft === 'COMPLETED' && !detailData.pricingConfirmed)} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
                         {detailStatusSaving ? '更新中…' : 'ステータスを更新'}
                       </button>
                     </div>

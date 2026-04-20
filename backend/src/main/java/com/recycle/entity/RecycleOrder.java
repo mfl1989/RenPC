@@ -57,6 +57,18 @@ public class RecycleOrder extends BaseAuditEntity {
     @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
+    @Column(name = "final_amount")
+    private Integer finalAmount;
+
+    @Column(name = "pricing_confirmed_at")
+    private Instant pricingConfirmedAt;
+
+    @Column(name = "pricing_confirmed_by", length = 255)
+    private String pricingConfirmedBy;
+
+    @Column(name = "pricing_confirmation_note", length = 500)
+    private String pricingConfirmationNote;
+
     @Column(name = "pc_count", nullable = false)
     private Integer pcCount;
 

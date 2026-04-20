@@ -1,0 +1,13 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="675" rx="32" fill="#FFFBEB"/>
+  <rect x="146" y="102" width="908" height="470" rx="28" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="10"/>
+  <rect x="298" y="168" width="604" height="320" rx="28" fill="#F8FAFC" stroke="#334155" stroke-width="10"/>
+  <rect x="338" y="206" width="524" height="244" rx="16" fill="#CBD5E1"/>
+  <path d="M298 168L248 118" stroke="#F59E0B" stroke-width="14" stroke-linecap="round"/>
+  <path d="M902 168L952 118" stroke="#F59E0B" stroke-width="14" stroke-linecap="round"/>
+  <path d="M298 488L248 538" stroke="#F59E0B" stroke-width="14" stroke-linecap="round"/>
+  <path d="M902 488L952 538" stroke="#F59E0B" stroke-width="14" stroke-linecap="round"/>
+  <rect x="512" y="488" width="176" height="24" rx="12" fill="#475569"/>
+  <rect x="566" y="512" width="68" height="38" rx="10" fill="#64748B"/>
+  <text x="600" y="600" text-anchor="middle" fill="#92400E" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Protect screen surface and corners</text>
+</svg>

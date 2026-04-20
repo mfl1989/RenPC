@@ -1,0 +1,14 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="675" rx="32" fill="#F0FDF4"/>
+  <rect x="86" y="88" width="1028" height="499" rx="28" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="10"/>
+  <rect x="188" y="176" width="470" height="270" rx="20" fill="#E2E8F0" stroke="#334155" stroke-width="10"/>
+  <rect x="216" y="206" width="414" height="200" rx="12" fill="#111827"/>
+  <rect x="790" y="206" width="158" height="110" rx="14" fill="#FFEDD5" stroke="#FB923C" stroke-width="8"/>
+  <path d="M822 330C856 290 892 290 926 330" stroke="#EA580C" stroke-width="10" stroke-linecap="round"/>
+  <rect x="782" y="348" width="188" height="80" rx="18" fill="#DBEAFE" stroke="#60A5FA" stroke-width="8"/>
+  <circle cx="832" cy="388" r="16" fill="#2563EB"/>
+  <circle cx="920" cy="388" r="16" fill="#2563EB"/>
+  <path d="M422 446V500" stroke="#475569" stroke-width="12" stroke-linecap="round"/>
+  <path d="M346 500H498" stroke="#475569" stroke-width="12" stroke-linecap="round"/>
+  <text x="600" y="560" text-anchor="middle" fill="#166534" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Pack device and bundled accessories separately</text>
+</svg>

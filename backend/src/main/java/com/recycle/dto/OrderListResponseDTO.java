@@ -40,6 +40,12 @@ public class OrderListResponseDTO {
     /** 日本円の最小通貨単位 */
     private Integer totalAmount;
 
+    /** 正式料金が確定済みか */
+    private boolean pricingConfirmed;
+
+    /** 正式料金 */
+    private Integer finalAmount;
+
     /** 申込日時（例: 2026/04/05 14:30） */
     private String createdAt;
 }

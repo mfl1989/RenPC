@@ -1,3 +1,9 @@
+import boxFitImage from '../assets/packing-guide/box-fit.svg'
+import boxReinforcementImage from '../assets/packing-guide/box-reinforcement.svg'
+import doNotPackImage from '../assets/packing-guide/do-not-pack.svg'
+import finalCheckImage from '../assets/packing-guide/final-check.svg'
+import monitorProtectionImage from '../assets/packing-guide/monitor-protection.svg'
+import pcAccessoriesImage from '../assets/packing-guide/pc-accessories.svg'
 import SimpleContentPage, { type ContentSection } from './SimpleContentPage.tsx'
 
 const sections: ContentSection[] = [
@@ -27,6 +33,62 @@ const sections: ContentSection[] = [
     ],
   },
   {
+    id: 'packing-decision-flow',
+    title: '梱包で迷った時の判断順',
+    body: [
+      '梱包可否に迷った場合は、最初に「送ってよい物か」、次に「保護が必要か」、最後に「箱の中で動かないか」の順で確認すると判断しやすくなります。',
+    ],
+    orderedItems: [
+      '対象外品や危険物に当たらないかを先に確認する',
+      '画面、ガラス面、角、突起など壊れやすい箇所があるかを見る',
+      '付属品をまとめ、本体と直接ぶつからないよう分ける',
+      '箱を閉じる前に軽く揺らし、大きく動かないことを確認する',
+      '少しでも不安が残る場合は、無理に発送せず問い合わせる',
+    ],
+    note: 'この順番で確認すると、「送ってはいけない物」と「送ってよいが保護が必要な物」を混同しにくくなります。',
+  },
+  {
+    id: 'packing-photo-plan',
+    title: '画像差し替えの目安',
+    body: [
+      '現在は仮画像を配置しています。実写真へ差し替える際は、ユーザーがそのまま真似できる構図を優先すると効果的です。',
+      '特に「テープの貼り方」「本体と付属品の分け方」「モニター保護」「同梱禁止品」は、文字よりも写真で誤解を減らしやすい部分です。',
+    ],
+    cards: [
+      {
+        title: '箱の底面補強',
+        body: '真上寄りの構図で、段ボール底面の十字貼りとテープの重なりが見える写真が最適です。手元が少し入ると作業イメージも伝わります。',
+        tone: 'neutral',
+      },
+      {
+        title: '箱サイズとすき間',
+        body: '機器を中央に置き、周囲に緩衝材を入れた状態を斜め上から撮ると、箱が大きすぎないことと固定状態が一目で伝わります。',
+        tone: 'neutral',
+      },
+      {
+        title: '本体と付属品の同梱例',
+        body: 'ノート PC 本体と、束ねたアダプタ・ケーブルを分けて入れた実例が最も有効です。付属品を袋にまとめた状態が見えると理想的です。',
+        tone: 'success',
+      },
+      {
+        title: 'モニター保護',
+        body: '画面面を覆った状態と四隅の緩衝材が見える近めの写真が最優先です。箱の中で立てていないことまで見えるとさらに良いです。',
+        tone: 'warning',
+      },
+      {
+        title: '同梱しない物',
+        body: '膨張電池、液漏れ機器、対象外家電などを並べた注意喚起写真が適しています。赤系の背景や注意ラベルを入れると認識しやすくなります。',
+        tone: 'danger',
+      },
+      {
+        title: '発送前チェック',
+        body: '梱包完了後の箱を上から撮った写真、またはチェックリストと一緒に置いた写真が安心感につながります。',
+        tone: 'neutral',
+      },
+    ],
+    note: '実写真へ差し替える際は、背景を整理し、1枚につき伝えたいポイントを1つに絞ると見やすくなります。',
+  },
+  {
     id: 'packing-box',
     title: '1. 段ボールの準備',
     body: [
@@ -43,11 +105,15 @@ const sections: ContentSection[] = [
         title: '箱の底面補強イメージ',
         caption: '底面の十字貼りと、開口部をしっかり閉じた状態の参考画像を入れる想定です。',
         aspect: 'wide',
+        imageSrc: boxReinforcementImage,
+        imageAlt: '段ボールの底面を十字貼りで補強するイメージ図',
       },
       {
         title: '箱サイズの目安',
         caption: '機器に対して過度に大きすぎない箱、すき間を埋めた状態の見本を置く想定です。',
         aspect: 'landscape',
+        imageSrc: boxFitImage,
+        imageAlt: '荷物を中央に寄せてすき間を埋めた梱包イメージ図',
       },
     ],
   },
@@ -68,6 +134,8 @@ const sections: ContentSection[] = [
         title: '本体と付属品の同梱例',
         caption: 'ノート PC 本体と、まとめたアダプタ・ケーブルを分けて入れた写真が最も分かりやすい位置です。',
         aspect: 'wide',
+        imageSrc: pcAccessoriesImage,
+        imageAlt: 'ノートパソコン本体と付属品を分けて同梱したイメージ図',
       },
     ],
   },
@@ -105,11 +173,15 @@ const sections: ContentSection[] = [
         title: 'モニター保護の拡大図',
         caption: '画面面を覆うシート、四隅の保護、箱内で立たせない状態の画像が最も効果的です。',
         aspect: 'wide',
+        imageSrc: monitorProtectionImage,
+        imageAlt: 'モニター画面と四隅を保護した梱包イメージ図',
       },
       {
         title: '一体型 PC の固定例',
         caption: 'スタンド部と本体が動かないよう固定した状態の画像を差し込む想定です。',
         aspect: 'landscape',
+        imageSrc: monitorProtectionImage,
+        imageAlt: '一体型パソコンを固定した梱包イメージ図',
       },
     ],
   },
@@ -142,9 +214,40 @@ const sections: ContentSection[] = [
         title: '同梱禁止の代表例',
         caption: '膨張電池、液漏れ機器、対象外家電を並べた注意喚起画像に最適な位置です。',
         aspect: 'wide',
+        imageSrc: doNotPackImage,
+        imageAlt: '同梱禁止品の注意喚起イメージ図',
       },
     ],
     note: '判断に迷う場合は、箱へ入れる前にお問い合わせください。無理に同梱するより、事前確認の方が安全です。',
+  },
+  {
+    id: 'packing-common-mistakes',
+    title: 'よくある NG 梱包',
+    body: [
+      '実際には「入れてはいけない物」よりも、「入れ方が雑で破損や受付差し戻しにつながる」ケースが多く発生します。次の例は避けてください。',
+    ],
+    cards: [
+      {
+        title: 'モニターをそのまま入れる',
+        body: '画面保護なしで箱に入れると、輸送中の圧力や接触で破損しやすくなります。画面面と四隅を先に保護してください。',
+        tone: 'danger',
+      },
+      {
+        title: 'ケーブル類をばらばらに入れる',
+        body: 'アダプタやケーブルが箱内で動くと、本体や画面を傷つける原因になります。束ねて袋や紙でまとめてください。',
+        tone: 'warning',
+      },
+      {
+        title: '箱が大きすぎて中身が動く',
+        body: '緩衝材が足りないまま大きい箱を使うと、輸送中に中身が偏りやすくなります。すき間を必ず埋めてください。',
+        tone: 'warning',
+      },
+      {
+        title: '危険物をついでに入れる',
+        body: '不要な電池、液漏れ機器、対象外家電を一緒に入れると、集荷見送りや返送の原因になります。',
+        tone: 'danger',
+      },
+    ],
   },
   {
     id: 'packing-final-check',
@@ -162,6 +265,8 @@ const sections: ContentSection[] = [
         title: '発送前チェック一覧',
         caption: 'チェックリストを紙で持つカット、または梱包完了後の上から見た写真に差し替えやすい枠です。',
         aspect: 'landscape',
+        imageSrc: finalCheckImage,
+        imageAlt: '発送前チェックリストのイメージ図',
       },
     ],
   },

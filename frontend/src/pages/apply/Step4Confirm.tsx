@@ -258,9 +258,9 @@ export default function Step4Confirm() {
             subtext={v.email || 'メールアドレス未入力'}
           />
           <SummaryCard
-            label="参考料金"
+            label="受付金額"
             value={`${pricing.subtotalYen.toLocaleString()} 円`}
-            subtext="正式な金額は受付内容に基づき確定します"
+            subtext="センター確認後、完了前に正式金額を確定します"
           />
         </section>
 

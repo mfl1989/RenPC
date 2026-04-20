@@ -14,6 +14,11 @@ public class OrderDetailResponseDTO {
     private String collectionDate;
     private String collectionTimeSlot;
     private Integer totalAmount;
+    private boolean pricingConfirmed;
+    private Integer finalAmount;
+    private String pricingConfirmedAt;
+    private String pricingConfirmedBy;
+    private String pricingConfirmationNote;
     private String createdAt;
     private String lastUpdatedAt;
 

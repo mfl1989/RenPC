@@ -1,0 +1,12 @@
+<svg width="900" height="675" viewBox="0 0 900 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="675" rx="32" fill="#EFF6FF"/>
+  <rect x="170" y="96" width="560" height="484" rx="28" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="10"/>
+  <rect x="230" y="166" width="340" height="42" rx="10" fill="#DBEAFE"/>
+  <rect x="230" y="250" width="280" height="18" rx="9" fill="#94A3B8"/>
+  <rect x="230" y="334" width="280" height="18" rx="9" fill="#94A3B8"/>
+  <rect x="230" y="418" width="280" height="18" rx="9" fill="#94A3B8"/>
+  <path d="M590 256L612 278L654 232" stroke="#16A34A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M590 340L612 362L654 316" stroke="#16A34A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M590 424L612 446L654 400" stroke="#16A34A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="450" y="540" text-anchor="middle" fill="#1D4ED8" font-size="30" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Final pre-shipment checklist</text>
+</svg>

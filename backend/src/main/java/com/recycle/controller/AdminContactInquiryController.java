@@ -35,8 +35,10 @@ public class AdminContactInquiryController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String assignedTo,
+            @RequestParam(required = false) Boolean changeRequestOnly,
             @PageableDefault(size = 20, sort = "createdAt", direction = Direction.DESC) Pageable pageable) {
         ContactInquiryListPageDTO response = contactInquiryService.getAdminInquiryList(keyword, status, assignedTo,
+                changeRequestOnly,
                 pageable);
         return ApiResponse.ok("成功", response);
     }

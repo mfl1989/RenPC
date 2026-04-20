@@ -11,6 +11,8 @@ export type ContentSection = {
     title: string
     caption: string
     aspect?: 'landscape' | 'square' | 'wide'
+    imageSrc?: string
+    imageAlt?: string
   }>
   cards?: Array<{
     title: string
@@ -197,19 +199,27 @@ export default function SimpleContentPage({
                           key={`${section.id}-${visual.title}`}
                           className="rounded-2xl border border-dashed border-slate-300 bg-white p-4"
                         >
-                          <div
-                            className={`flex w-full items-center justify-center rounded-xl border border-slate-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#f8fafc_100%)] ${visualAspectClass[visual.aspect ?? 'landscape']}`}
-                          >
-                            <div className="text-center">
-                              <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">
-                                IMAGE PLACEHOLDER
-                              </p>
-                              <p className="mt-2 text-sm font-semibold text-slate-900">{visual.title}</p>
-                              <p className="mt-2 px-6 text-xs leading-6 text-slate-500">
-                                差し替え予定のダミー画像枠です
-                              </p>
+                          {visual.imageSrc ? (
+                            <img
+                              src={visual.imageSrc}
+                              alt={visual.imageAlt ?? visual.title}
+                              className={`w-full rounded-xl border border-slate-200 object-cover ${visualAspectClass[visual.aspect ?? 'landscape']}`}
+                            />
+                          ) : (
+                            <div
+                              className={`flex w-full items-center justify-center rounded-xl border border-slate-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#f8fafc_100%)] ${visualAspectClass[visual.aspect ?? 'landscape']}`}
+                            >
+                              <div className="text-center">
+                                <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">
+                                  IMAGE PLACEHOLDER
+                                </p>
+                                <p className="mt-2 text-sm font-semibold text-slate-900">{visual.title}</p>
+                                <p className="mt-2 px-6 text-xs leading-6 text-slate-500">
+                                  差し替え予定のダミー画像枠です
+                                </p>
+                              </div>
                             </div>
-                          </div>
+                          )}
                           <figcaption className="mt-3 text-sm leading-6 text-slate-600">
                             {visual.caption}
                           </figcaption>

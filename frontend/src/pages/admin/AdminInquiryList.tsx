@@ -17,6 +17,8 @@ interface InquiryListRow {
   name: string
   email: string
   category: string
+  changeRequest: boolean
+  changeRequestTopic: string | null
   inquiryStatus: string
   assignedTo: string | null
   orderReference: string | null
@@ -40,6 +42,8 @@ interface InquiryDetailData {
   name: string
   email: string
   category: string
+  changeRequest: boolean
+  changeRequestTopic: string | null
   inquiryStatus: string
   assignedTo: string | null
   orderReference: string | null
@@ -71,6 +75,10 @@ function inquiryStatusBadgeClass(status: string): string {
     default:
       return `${base} bg-slate-100 text-slate-700 ring-slate-600/20`
   }
+}
+
+function changeRequestBadgeClass(): string {
+  return 'inline-flex items-center rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-900 ring-1 ring-inset ring-fuchsia-200'
 }
 
 function statusCodeFromLabel(label: string): InquiryStatusCode {
@@ -116,6 +124,8 @@ export default function AdminInquiryList() {
   const [appliedKeyword, setAppliedKeyword] = useState('')
   const [assignedToFilter, setAssignedToFilter] = useState('')
   const [appliedAssignedToFilter, setAppliedAssignedToFilter] = useState('')
+  const [changeRequestOnly, setChangeRequestOnly] = useState(false)
+  const [appliedChangeRequestOnly, setAppliedChangeRequestOnly] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'ALL' | InquiryStatusCode>('ALL')
   const [appliedStatusFilter, setAppliedStatusFilter] = useState<'ALL' | InquiryStatusCode>('ALL')
   const [selectedInquiryId, setSelectedInquiryId] = useState<number | null>(null)
@@ -133,6 +143,7 @@ export default function AdminInquiryList() {
     searchKeyword: string,
     searchStatus: 'ALL' | InquiryStatusCode,
     searchAssignedTo: string,
+    searchChangeRequestOnly: boolean,
   ) => {
     setLoading(true)
     setError(null)
@@ -144,6 +155,7 @@ export default function AdminInquiryList() {
           keyword: searchKeyword,
           status: searchStatus === 'ALL' ? undefined : searchStatus,
           assignedTo: searchAssignedTo || undefined,
+          changeRequestOnly: searchChangeRequestOnly || undefined,
         },
       })
       if (data.code !== 200 || !data.data) {
@@ -162,13 +174,14 @@ export default function AdminInquiryList() {
   }, [])
 
   useEffect(() => {
-    void load(page, appliedKeyword, appliedStatusFilter, appliedAssignedToFilter)
-  }, [appliedAssignedToFilter, appliedKeyword, appliedStatusFilter, load, page])
+    void load(page, appliedKeyword, appliedStatusFilter, appliedAssignedToFilter, appliedChangeRequestOnly)
+  }, [appliedAssignedToFilter, appliedChangeRequestOnly, appliedKeyword, appliedStatusFilter, load, page])
 
   const applyFilters = (nextStatus: 'ALL' | InquiryStatusCode) => {
     setAppliedKeyword(keyword)
     setAppliedStatusFilter(nextStatus)
     setAppliedAssignedToFilter(assignedToFilter.trim())
+    setAppliedChangeRequestOnly(changeRequestOnly)
     setPage(0)
   }
 
@@ -227,7 +240,7 @@ export default function AdminInquiryList() {
         return
       }
       await openDetail(detail.inquiryId)
-      await load(page, appliedKeyword, appliedStatusFilter, appliedAssignedToFilter)
+      await load(page, appliedKeyword, appliedStatusFilter, appliedAssignedToFilter, appliedChangeRequestOnly)
       setDetailSaveMessage('問い合わせ対応情報を更新しました。')
     } catch (error) {
       if (axios.isAxiosError<ApiEnvelope<null>>(error)) {
@@ -322,9 +335,22 @@ export default function AdminInquiryList() {
                   {option.label}
                 </button>
               ))}
+              <label className={changeRequestOnly
+                ? 'inline-flex cursor-pointer items-center gap-2 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-sm'
+                : 'inline-flex cursor-pointer items-center gap-2 rounded-lg border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-800 shadow-sm hover:bg-fuchsia-50'}>
+                <input
+                  type="checkbox"
+                  checked={changeRequestOnly}
+                  onChange={(event) => setChangeRequestOnly(event.target.checked)}
+                  className="h-4 w-4 rounded border-white/60 text-fuchsia-600 focus:ring-fuchsia-300"
+                />
+                <span>変更依頼のみ</span>
+              </label>
             </div>
           </div>
-          <div className="text-sm font-medium text-slate-500">全 {totalElements} 件</div>
+          <div className="text-sm font-medium text-slate-500">
+            {appliedChangeRequestOnly ? '変更依頼のみ ' : ''}全 {totalElements} 件
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -349,11 +375,25 @@ export default function AdminInquiryList() {
                 ) : rows.length === 0 ? (
                   <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">該当する問い合わせはありません。</td></tr>
                 ) : rows.map((row) => (
-                  <tr key={row.inquiryId} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={row.inquiryId}
+                    className={row.changeRequest
+                      ? 'bg-fuchsia-50/40 transition-colors hover:bg-fuchsia-50/70'
+                      : 'transition-colors hover:bg-slate-50/60'}
+                  >
                     <td className="px-4 py-3 font-mono text-slate-800">{formatInquiryId(row.inquiryId)}</td>
                     <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
                     <td className="px-4 py-3 text-slate-600">{row.email}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.category}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      <div className="flex flex-col gap-2">
+                        <span>{row.category}</span>
+                        {row.changeRequest ? (
+                          <span className={changeRequestBadgeClass()}>
+                            変更依頼{row.changeRequestTopic ? ` · ${row.changeRequestTopic}` : ''}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="px-4 py-3"><span className={inquiryStatusBadgeClass(row.inquiryStatus)}>{row.inquiryStatus}</span></td>
                     <td className="px-4 py-3 text-slate-600">{row.assignedTo || '-'}</td>
                     <td className="px-4 py-3 font-mono text-slate-600">{row.orderReference || '-'}</td>
@@ -395,6 +435,15 @@ export default function AdminInquiryList() {
                 <div className="space-y-5">
                   <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <h4 className="mb-3 border-b pb-2 font-bold text-slate-700">基本情報</h4>
+                    {detail.changeRequest ? (
+                      <div className="mb-4 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-4 py-3 text-sm leading-7 text-fuchsia-950">
+                        <p className="font-semibold">注文照会画面から送信された変更依頼です</p>
+                        <p className="mt-1">変更種別: {detail.changeRequestTopic ?? '未指定'}</p>
+                        <p className="mt-1 text-fuchsia-900/80">
+                          回収日、時間帯、連絡先、品目などの変更相談の可能性があります。本文と申込番号をあわせて確認してください。
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="grid gap-3 md:grid-cols-2">
                       <div><span className="block text-xs text-slate-500">受付番号</span><span className="font-medium text-slate-800">{formatInquiryId(detail.inquiryId)}</span></div>
                       <div><span className="block text-xs text-slate-500">受付日時</span><span className="font-medium text-slate-800">{detail.createdAt}</span></div>

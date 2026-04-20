@@ -10,23 +10,25 @@ import com.recycle.entity.ContactInquiry;
 
 public interface ContactInquiryRepository extends JpaRepository<ContactInquiry, Long> {
 
-    long countByInquiryStatus(String inquiryStatus);
+        long countByInquiryStatus(String inquiryStatus);
 
-    @Query("""
-            SELECT ci
-            FROM ContactInquiry ci
-            WHERE (:keyword IS NULL OR :keyword = ''
-            	OR LOWER(ci.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            	OR LOWER(ci.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            	OR LOWER(ci.message) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            	OR ci.orderReference LIKE CONCAT('%', :keyword, '%'))
-              AND (:status IS NULL OR :status = '' OR ci.inquiryStatus = :status)
-              AND (:assignedTo IS NULL OR :assignedTo = ''
-                OR LOWER(ci.assignedTo) LIKE LOWER(CONCAT('%', :assignedTo, '%')))
-            """)
-    Page<ContactInquiry> findAllWithKeyword(
-            @Param("keyword") String keyword,
-            @Param("status") String status,
-            @Param("assignedTo") String assignedTo,
-            Pageable pageable);
+        @Query("""
+                        SELECT ci
+                        FROM ContactInquiry ci
+                        WHERE (:keyword IS NULL OR :keyword = ''
+                        	OR LOWER(ci.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                        	OR LOWER(ci.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                        	OR LOWER(ci.message) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                        	OR ci.orderReference LIKE CONCAT('%', :keyword, '%'))
+                          AND (:status IS NULL OR :status = '' OR ci.inquiryStatus = :status)
+                          AND (:assignedTo IS NULL OR :assignedTo = ''
+                            OR LOWER(ci.assignedTo) LIKE LOWER(CONCAT('%', :assignedTo, '%')))
+                                                                    AND (:changeRequestOnly = FALSE OR ci.message LIKE '変更種別:%')
+                        """)
+        Page<ContactInquiry> findAllWithKeyword(
+                        @Param("keyword") String keyword,
+                        @Param("status") String status,
+                        @Param("assignedTo") String assignedTo,
+                        @Param("changeRequestOnly") boolean changeRequestOnly,
+                        Pageable pageable);
 }

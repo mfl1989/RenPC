@@ -3,21 +3,41 @@ import { Link } from 'react-router-dom'
 import { contactInquiryCategoryOptions, contactInquirySchema, type ContactInquiryValues } from '../schemas/contactInquirySchema.ts'
 import { submitContactInquiry } from '../services/contactInquiry.ts'
 
+const SUPPORT_CHANNELS = [
+  {
+    title: '申込前のご相談',
+    body: '回収対象品目、梱包方法、回収条件、データ消去オプションなど、申込前に確認したい内容をご相談いただけます。',
+  },
+  {
+    title: '申込後の確認',
+    body: '申込済みのお客様は、お申込み番号を添えてご連絡いただくことで、受付状況やご案内内容の確認がしやすくなります。',
+  },
+  {
+    title: '対応時間の目安',
+    body: '通常は 2 営業日以内を目安に確認します。内容や混雑状況により、確認にお時間をいただく場合があります。',
+  },
+] as const
+
 const SUPPORT_FAQS = [
   {
     question: 'パソコン本体を複数台入れても無料ですか？',
     answer:
-      '1 箱に収まる範囲でパソコン本体をまとめて送れる、という見せ方にしておくと利用者が判断しやすくなります。正式版では箱サイズ、重量上限、2 箱目以降の扱いを明記してください。',
+      '1 箱に収まる範囲で回収対象品をまとめて送れる想定です。正式運用時は、箱サイズ、重量上限、2 箱目以降の条件をあわせてご確認ください。',
   },
   {
     question: '梱包は段ボールでないといけませんか？',
     answer:
-      '段ボールを基本案内にしつつ、配送中に中身が出ない梱包条件を明示するのが実運用向きです。詳しくは梱包方法ページへ誘導します。',
+      '段ボールを基本とし、配送中に内容物が飛び出さない梱包をお願いしています。詳しくは梱包方法ページをご確認ください。',
   },
   {
     question: '申込完了メールが届かない場合は？',
     answer:
-      '迷惑メールフォルダ、ドメイン受信設定、入力メールアドレスの誤り確認を先に案内しておくと、問い合わせ前に自己解決しやすくなります。',
+      '迷惑メールフォルダ、受信設定、入力メールアドレスの誤りをご確認ください。解決しない場合は、その旨を添えてお問い合わせください。',
+  },
+  {
+    question: '回収日時の変更はどこから依頼できますか？',
+    answer:
+      '原則として回収日前日の15時まで、受付完了メールへの返信またはお問い合わせフォームからご依頼ください。',
   },
 ] as const
 
@@ -80,14 +100,17 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] text-slate-800">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <div>
-            <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">お客様サポート</p>
+            <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">Customer Support</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-slate-900 md:text-3xl">
               ご相談窓口
             </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+              回収前の確認から申込後のご相談まで、内容に応じて順次ご案内します。
+            </p>
           </div>
           <Link
             to="/"
@@ -100,9 +123,46 @@ export default function ContactPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <p className="text-sm leading-7 text-slate-600 md:text-base">
-            お客様より寄せられやすい内容を先にまとめています。フォーム送信の前に、まずはこちらをご確認ください。
-          </p>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)] lg:items-start">
+            <div>
+              <p className="text-sm leading-7 text-slate-600 md:text-base">
+                お客様より寄せられやすい内容を先にまとめています。フォーム送信の前に、まずはこちらをご確認ください。
+              </p>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {SUPPORT_CHANNELS.map((item) => (
+                  <article
+                    key={item.title}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5"
+                  >
+                    <h2 className="text-sm font-semibold text-slate-900">{item.title}</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">{item.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <aside className="rounded-3xl border border-orange-200 bg-linear-to-br from-orange-50 via-white to-amber-50 p-5 shadow-sm">
+              <p className="text-xs font-semibold tracking-[0.08em] text-orange-700">お問い合わせ窓口</p>
+              <dl className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
+                <div>
+                  <dt className="font-medium text-slate-500">受付時間</dt>
+                  <dd className="mt-1 font-semibold text-slate-900">平日 9:00〜18:00</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">対応目安</dt>
+                  <dd className="mt-1 font-semibold text-slate-900">原則 2 営業日以内</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">関連文書</dt>
+                  <dd className="mt-2 flex flex-col gap-2">
+                    <Link to="/terms" className="font-semibold text-slate-900 underline underline-offset-4 hover:text-orange-600">利用規約</Link>
+                    <Link to="/privacy" className="font-semibold text-slate-900 underline underline-offset-4 hover:text-orange-600">個人情報保護方針</Link>
+                  </dd>
+                </div>
+              </dl>
+            </aside>
+          </div>
+
           <div className="mt-6 grid gap-4">
             {SUPPORT_FAQS.map((item, index) => (
               <article
@@ -127,6 +187,12 @@ export default function ContactPage() {
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
+              to="/faq"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+            >
+              FAQ 一覧を見る
+            </Link>
+            <Link
               to="/guide/packing"
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
             >
@@ -150,17 +216,27 @@ export default function ContactPage() {
             <ul className="mt-5 space-y-3 text-sm leading-7 text-slate-600">
               <li className="flex gap-3">
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
-                <span>申込済みの場合は、お申込み番号を本文に添える前提で案内してください。</span>
+                <span>申込済みの場合は、お申込み番号を本文に添えてください。</span>
               </li>
               <li className="flex gap-3">
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
-                <span>回収予定日、対象品目、梱包方法、データ消去の相談内容を先に整理すると、問い合わせ対応が早くなります。</span>
+                <span>回収予定日、対象品目、梱包方法、データ消去の相談内容を先に整理すると、確認が早くなります。</span>
               </li>
               <li className="flex gap-3">
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
-                <span>土日祝日や営業時間外の問い合わせは、翌営業日対応の注意書きを出しておくと親切です。</span>
+                <span>土日祝日や営業時間外のお問い合わせは、翌営業日以降に順次確認します。</span>
               </li>
             </ul>
+            <div className="mt-6 rounded-2xl border border-orange-200 bg-white/80 p-4 text-sm leading-7 text-slate-700">
+              <p className="font-semibold text-slate-900">ご確認事項</p>
+              <p className="mt-2">
+                回収条件、キャンセル条件および個人情報の取扱いについては、送信前に
+                <Link to="/terms" className="mx-1 font-semibold text-slate-900 underline underline-offset-4 hover:text-orange-600">利用規約</Link>
+                と
+                <Link to="/privacy" className="mx-1 font-semibold text-slate-900 underline underline-offset-4 hover:text-orange-600">個人情報保護方針</Link>
+                をご確認ください。
+              </p>
+            </div>
           </article>
 
           <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -168,6 +244,9 @@ export default function ContactPage() {
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-slate-900">
               必要事項を入力して送信してください
             </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              送信内容は確認後、担当窓口にて順次対応します。お急ぎの場合でも、受付順での確認となる場合があります。
+            </p>
             {submitted ? (
               <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                 <p className="text-sm font-semibold text-emerald-900">送信を受け付けました。</p>
@@ -268,6 +347,9 @@ export default function ContactPage() {
                       個人情報保護方針
                     </Link>
                     に同意のうえ送信します。
+                    <span className="mt-1 block text-xs leading-6 text-slate-500">
+                      送信内容はお問い合わせ対応およびご連絡のために利用します。
+                    </span>
                   </span>
                 </label>
                 {errors.privacyConsent ? <span className="block text-xs text-rose-600">{errors.privacyConsent}</span> : null}

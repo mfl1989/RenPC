@@ -17,12 +17,14 @@ public class OrderLookupResponseDTO {
     private Long orderId;
     private String contactName;
     private String email;
+    private String orderStatusCode;
     private String orderStatus;
     private String progressSummary;
     private String collectionDate;
     private String collectionTimeSlot;
     private String createdAt;
     private String lastUpdatedAt;
+    private Integer totalAmount;
     private Integer pcCount;
     private Integer monitorCount;
     private Integer smallApplianceBoxCount;

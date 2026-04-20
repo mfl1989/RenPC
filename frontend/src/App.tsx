@@ -14,6 +14,10 @@ const Step4Confirm = lazy(() => import('./pages/apply/Step4Confirm.tsx'))
 const CollectionFlowPage = lazy(() => import('./pages/CollectionFlowPage.tsx'))
 const CompanyPage = lazy(() => import('./pages/CompanyPage.tsx'))
 const ContactPage = lazy(() => import('./pages/ContactPage.tsx'))
+const DataErasurePage = lazy(() => import('./pages/DataErasurePage.tsx'))
+const FaqPage = lazy(() => import('./pages/FaqPage.tsx'))
+const AreaAndFeesPage = lazy(() => import('./pages/AreaAndFeesPage.tsx'))
+const ItemGuidePage = lazy(() => import('./pages/ItemGuidePage.tsx'))
 const LandingPage = lazy(() => import('./pages/LandingPage.tsx'))
 const OrderLookupPage = lazy(() => import('./pages/OrderLookupPage.tsx'))
 const PackingGuidePage = lazy(() => import('./pages/PackingGuidePage.tsx'))
@@ -36,10 +40,14 @@ export default function App() {
         <Route path="/orders/lookup" element={<OrderLookupPage />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/faq" element={<FaqPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/guide/area-and-fees" element={<AreaAndFeesPage />} />
         <Route path="/guide/flow" element={<CollectionFlowPage />} />
+        <Route path="/guide/items" element={<ItemGuidePage />} />
         <Route path="/guide/packing" element={<PackingGuidePage />} />
+        <Route path="/guide/data-erasure" element={<DataErasurePage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<ProtectedRoute />}>
           <Route path="orders" element={<AdminOrderList />} />

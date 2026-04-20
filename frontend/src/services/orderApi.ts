@@ -16,16 +16,27 @@ export interface OrderLookupPayload {
   email: string
 }
 
+export type OrderStatusCode =
+  | 'RECEIVED'
+  | 'KIT_SHIPPED'
+  | 'COLLECTING'
+  | 'ARRIVED'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'CANCELLED'
+
 export interface OrderLookupResult {
   orderId: number
   contactName: string
   email: string
+  orderStatusCode: OrderStatusCode
   orderStatus: string
   progressSummary: string
   collectionDate: string
   collectionTimeSlot: string
   createdAt: string
   lastUpdatedAt: string
+  totalAmount: number
   pcCount: number
   monitorCount: number
   smallApplianceBoxCount: number

@@ -194,9 +194,12 @@ export const defaultRecycleOrderValues: RecycleOrderFormValues = {
 /** 税込の宅配枠基本料金モック（パソコン非含有時の目安） */
 export const MOCK_BASE_LOGISTICS_FEE_YEN_TAX_IN = 1848
 
+/** 段ボール事前送付の手数料モック */
+export const MOCK_CARDBOARD_DELIVERY_FEE_YEN = 550
+
 /**
  * 基本送料の目安（モック）
- * パソコン本体を1台以上含む場合は0円、それ以外は1箱あたりの基本料金を表示用に返す
+ * パソコン本体を1台以上含む場合は0円、それ以外は1申込あたりの基本料金を表示用に返す
  */
 export function getBaseLogisticsFeeHint(pcCount: number): {
   isWaived: boolean
@@ -213,4 +216,26 @@ export const MOCK_DATA_ERASE_FEE_YEN = 3000
 
 export function getDataErasureFeeYen(option: DataErasureOption): number {
   return option === 'full_service_paid' ? MOCK_DATA_ERASE_FEE_YEN : 0
+}
+
+export function getCardboardDeliveryFeeYen(requested: boolean): number {
+  return requested ? MOCK_CARDBOARD_DELIVERY_FEE_YEN : 0
+}
+
+export function calculateOrderPricing(input: {
+  pcCount: number
+  dataErasureOption: DataErasureOption
+  cardboardDeliveryRequested: boolean
+}) {
+  const baseLogisticsFee = getBaseLogisticsFeeHint(input.pcCount)
+  const dataErasureFee = getDataErasureFeeYen(input.dataErasureOption)
+  const cardboardDeliveryFee = getCardboardDeliveryFeeYen(input.cardboardDeliveryRequested)
+  const subtotalYen = baseLogisticsFee.amountYenTaxIn + dataErasureFee + cardboardDeliveryFee
+
+  return {
+    baseLogisticsFee,
+    dataErasureFee,
+    cardboardDeliveryFee,
+    subtotalYen,
+  }
 }

@@ -19,6 +19,7 @@ import com.recycle.entity.ContactInquiry;
 import com.recycle.repository.ContactInquiryRepository;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class ContactInquiryServiceTest {
 
     @Mock

@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class OrderNotificationService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
@@ -40,6 +41,12 @@ public class OrderNotificationService {
     }
 
     private void sendMail(RecycleOrder order, String subject, String body) {
+        String recipient = trimToNull(order.getEmail());
+        if (recipient == null) {
+            log.warn("送信先メールアドレスが未設定のため通知メールを送信できません。orderId={}", order.getId());
+            return;
+        }
+
         if (!properties.isEnabled()) {
             log.info("通知メールは無効です。orderId={}", order.getId());
             return;
@@ -54,8 +61,14 @@ public class OrderNotificationService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setTo(order.getEmail());
-            helper.setFrom(resolveFromAddress(), trimToNull(properties.getFromName()));
+            helper.setTo(recipient);
+            String fromAddress = resolveFromAddress();
+            String fromName = trimToNull(properties.getFromName());
+            if (fromName != null) {
+                helper.setFrom(fromAddress, fromName);
+            } else {
+                helper.setFrom(fromAddress);
+            }
             String replyTo = trimToNull(properties.getReplyTo());
             if (replyTo != null) {
                 helper.setReplyTo(replyTo, defaultSupportDeskName());
@@ -193,8 +206,7 @@ public class OrderNotificationService {
             return "未指定";
         }
         return switch (code) {
-            case "none" -> "希望しない";
-            case "self" -> "自分で消去予定";
+            case "self_erase_free" -> "ご自身で事前に消去する";
             case "full_service_paid" -> "おまかせ消去サービスを利用";
             default -> code;
         };

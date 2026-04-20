@@ -1,20 +1,22 @@
 package com.recycle.security;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
+
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
 
 /**
  * JWT の生成・解析・検証を行うユーティリティ。
@@ -42,10 +44,10 @@ public class JwtUtils {
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .subject(username)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -58,10 +60,10 @@ public class JwtUtils {
         }
 
         return Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody()
+                .parseSignedClaims(token)
+                .getPayload()
                 .getSubject();
     }
 
@@ -75,7 +77,7 @@ public class JwtUtils {
         }
 
         try {
-            Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
+            Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(authToken);
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.error("JWT 検証失敗: 署名が不正または形式が不正です。type={}", e.getClass().getSimpleName());
@@ -91,14 +93,13 @@ public class JwtUtils {
         return false;
     }
 
-private SecretKey getSigningKey() {
-    byte[] keyBytes;
-    try {
-        keyBytes = Decoders.BASE64.decode(jwtSecret);
-    } catch (RuntimeException ignored) { 
-        keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+    private SecretKey getSigningKey() {
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(jwtSecret);
+        } catch (RuntimeException ignored) {
+            keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
-    return Keys.hmacShaKeyFor(keyBytes);
 }
-}
-

@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class ContactInquiryService {
 
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
@@ -54,7 +56,7 @@ public class ContactInquiryService {
                 .privacyConsented(dto.isPrivacyConsent())
                 .build();
 
-        ContactInquiry saved = contactInquiryRepository.save(inquiry);
+        ContactInquiry saved = Objects.requireNonNull(contactInquiryRepository.save(inquiry));
 
         contactInquiryNotificationService.sendCustomerReceipt(saved);
         contactInquiryNotificationService.sendAdminNotification(saved);
@@ -87,7 +89,7 @@ public class ContactInquiryService {
 
     @Transactional(readOnly = true)
     public ContactInquiryDetailResponseDTO getAdminInquiryDetail(Long inquiryId) {
-        ContactInquiry inquiry = contactInquiryRepository.findById(inquiryId)
+        ContactInquiry inquiry = contactInquiryRepository.findById(Objects.requireNonNull(inquiryId))
                 .orElseThrow(() -> new ResourceNotFoundException("指定された問い合わせが存在しません"));
 
         return ContactInquiryDetailResponseDTO.builder()
@@ -110,7 +112,7 @@ public class ContactInquiryService {
 
     @Transactional
     public void updateAdminInquiryStatus(Long inquiryId, ContactInquiryStatusUpdateRequestDTO dto) {
-        ContactInquiry inquiry = contactInquiryRepository.findById(inquiryId)
+        ContactInquiry inquiry = contactInquiryRepository.findById(Objects.requireNonNull(inquiryId))
                 .orElseThrow(() -> new ResourceNotFoundException("指定された問い合わせが存在しません"));
 
         if (dto.getVersion() == null || !dto.getVersion().equals(inquiry.getVersion())) {

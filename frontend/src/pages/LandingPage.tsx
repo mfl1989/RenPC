@@ -11,72 +11,81 @@ const MOCK_PROCESS_STEPS = [
   {
     step: 1,
     title: '事前に申込み',
-    description:
-      'Web フォームから台数・希望日時をお知らせください。最短翌日からの集荷など、スムーズな手配が可能です。',
+    description: '台数と希望日時を入力してお申し込みください。',
     Icon: IconApply,
   },
   {
     step: 2,
     title: '段ボールへ梱包',
-    description:
-      'お手持ちの段ボールに梱包いただけます。クッション材で保護し、破損しにくいようお包みください。',
+    description: 'お手持ちの箱で梱包し、発送準備を進めます。',
     Icon: IconPack,
   },
   {
     step: 3,
     title: '宅配業者へ引渡し',
-    description:
-      'ご指定の日時に宅配業者がお伺いし、玄関先でお預かりします。工場到着後はメール等で状況をお知らせします。',
+    description: 'ご指定日時に集荷し、進捗はメールと注文照会で確認できます。',
     Icon: IconHandover,
   },
 ] as const
 
-/** 無料回収の対象品目（モック・サイト記載の例に沿った表現） */
-const MOCK_FREE_ITEMS = [
-  { name: 'ノートパソコン', note: '電源アダプタ同梱推奨' },
-  { name: 'タブレット端末', note: 'Surface 等（パスコード解除済み）' },
+const MOCK_ITEM_CATEGORIES = [
   {
-    name: 'デスクトップパソコン',
-    note: 'モニター・キーボード等の周辺機器も同梱可（モック）',
-  },
-  { name: '一体型パソコン', note: '梱包時のサイズ・重量制限にご注意ください' },
-  { name: 'iPad', note: 'Apple 製タブレット' },
-] as const
-
-/** 有料・別ルートが必要な例（FAQ の整理に近いモック） */
-const MOCK_SPECIAL_ROUTE_ITEMS = [
-  {
-    name: 'CRT モニター',
-    note: '有害物質処理のため別途料金が発生する場合があります（モック価格表記は省略）',
+    title: '無料対象の目安',
+    toneClass: 'border-emerald-200 bg-emerald-50/70 text-emerald-950',
+    labelClass: 'text-emerald-700',
+    body: 'ノートパソコン、デスクトップパソコン、一体型パソコン、タブレット端末など。パソコン本体を含む申込を基本とします。',
+    examples: ['ノートパソコン', 'デスクトップパソコン', '一体型パソコン', 'タブレット端末'],
   },
   {
-    name: 'テレビ・冷蔵庫・洗濯機・エアコン（家電 4 品目）',
-    note: '専用の回収チャネルからお申し込みください（本デモではリンクなし）',
+    title: '条件確認が必要',
+    toneClass: 'border-amber-200 bg-amber-50/80 text-amber-950',
+    labelClass: 'text-amber-700',
+    body: 'モニターのみ、小型家電のみ、複数箱になる申込は、通常申込と条件が異なる場合があります。',
+    examples: ['液晶モニターのみ', '小型家電のみ', '複数箱の申込'],
   },
   {
-    name: 'リチウムイオン電池のみの送付',
-    note: '危険物取扱の都合によりお受けできない場合があります',
+    title: '有料・別ルートの例',
+    toneClass: 'border-orange-200 bg-orange-50/80 text-orange-950',
+    labelClass: 'text-orange-700',
+    body: '特殊処理や法令対応が必要な品目は、自動受付ではなく個別案内を前提とします。',
+    examples: ['CRT モニター', 'テレビ・冷蔵庫・洗濯機・エアコン', '大型・重量物'],
+  },
+  {
+    title: '受付対象外の例',
+    toneClass: 'border-red-200 bg-red-50/80 text-red-950',
+    labelClass: 'text-red-700',
+    body: '危険物、電池のみの送付、液漏れや著しい破損がある機器は配送規定上お受けできない場合があります。',
+    examples: ['リチウムイオン電池のみ', '液漏れ・膨張した機器', '著しい破損がある機器'],
   },
 ] as const
 
 const MOCK_FREE_CONDITIONS = [
-  'パソコン本体を含む回収は 1 箱分無料を想定',
-  '壊れていても古くても回収対象の想定',
-  'キーボード・マウス・ケーブル類も同梱しやすい構成',
+  {
+    label: '基本送料',
+    value: 'パソコン本体を含む 1 箱分は無料想定',
+  },
+  {
+    label: '機器状態',
+    value: '故障品・旧型機種も受付対象',
+  },
+  {
+    label: '同梱品',
+    value: 'マウス、キーボード、ケーブルもまとめて発送可能',
+  },
 ] as const
 
 const MOCK_RECOVERY_OK_POINTS = [
   {
     title: 'どんなパソコンでもOK',
-    description: 'ノート、デスクトップ、一体型、タブレットなど幅広い機種を対象とする想定です。',
+    description: 'ノート、デスクトップ、一体型、タブレットに対応します。',
   },
   {
     title: '壊れていてもOK',
-    description: '電源が入らない機器や古い機種でも、回収対象として案内できる構成にしています。',
+    description: '電源が入らない機器や古い機種も受付対象です。',
   },
   {
     title: '周辺機器も同梱しやすい',
-    description: 'マウス、キーボード、ケーブル類などをまとめて梱包しやすい想定です。',
+    description: 'マウス、キーボード、ケーブル類もまとめて送れます。',
   },
 ] as const
 
@@ -84,16 +93,31 @@ const MOCK_DATA_ERASURE_GUIDES = [
   {
     title: 'ご自身で消去する場合',
     points: [
-      '初期化だけでは完全に消えないケースがあるため、専用ソフト等の利用を想定した案内を掲載します。',
-      '発送前にバックアップを行い、必要なデータが残っていないかをご確認ください。',
+      '初期化だけでなく、専用ソフト等での消去を推奨します。',
+      '発送前にバックアップとログアウトをご確認ください。',
     ],
   },
   {
     title: 'おまかせ消去サービスを利用する場合',
     points: [
-      '専門工程で消去を行う有料オプションとして案内し、証明書の有無や対象条件を明示します。',
-      '壊れたパソコンや古い機種でも対応可能かどうかを、正式版では明確に記載します。',
+      '有料オプションとして受付し、対象条件を事前にご案内します。',
+      '故障品や旧型機種も個別条件に応じて確認します。',
     ],
+  },
+] as const
+
+const MOCK_TRUST_POINTS = [
+  {
+    title: '受付条件を事前に確認できる',
+    body: '料金、対象品目、変更期限を公開ページで確認できます。',
+  },
+  {
+    title: '申込後は注文照会で確認',
+    body: 'メールに加えて、注文照会ページから進捗を確認できます。',
+  },
+  {
+    title: '不明点は個別相談に対応',
+    body: '特殊品目や確認事項がある場合は、問い合わせフォームから相談できます。',
   },
 ] as const
 
@@ -101,17 +125,17 @@ const MOCK_FAQS = [
   {
     question: '壊れたパソコンも回収できますか？',
     answer:
-      'はい。壊れていても回収対象とする想定です。正式運用時は、無料条件や対象外ケースを併記してください。',
+      'はい。故障品も受付対象です。著しい破損がある場合のみ個別確認となります。',
   },
   {
     question: '段ボールはどんな箱でも大丈夫ですか？',
     answer:
-      '一般的な段ボールを利用できる想定です。サイズ上限や重量制限は梱包方法ページで案内すると分かりやすくなります。',
+      '一般的な段ボールをご利用いただけます。サイズ上限は梱包方法ページでご確認ください。',
   },
   {
     question: '回収日時はあとから変更できますか？',
     answer:
-      '変更受付の締切や方法をマイページまたは問い合わせ窓口に紐づけて案内すると、実運用に近い構成になります。',
+      '原則として回収日前日の15時まで、メール返信またはお問い合わせから変更できます。',
   },
 ] as const
 
@@ -206,9 +230,43 @@ function IconHandover(props: { className?: string }) {
 
 const subNavLinks = [
   { label: '宅配回収の流れ', to: '/guide/flow' },
+  { label: '対応エリア・料金', to: '/guide/area-and-fees' },
   { label: '梱包方法', to: '/guide/packing' },
-  { label: '回収品目', href: '#items' },
+  { label: '回収品目', to: '/guide/items' },
+  { label: 'データ消去', to: '/guide/data-erasure' },
   { label: 'サポート', to: '/contact' },
+] as const
+
+const headerUtilityLinkClass =
+  'inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 md:min-w-[9rem]'
+
+const footerLinkGroups = [
+  {
+    title: 'ご利用案内',
+    links: [
+      { label: '宅配回収の流れ', to: '/guide/flow' },
+      { label: '対応エリア・料金', to: '/guide/area-and-fees' },
+      { label: '梱包方法', to: '/guide/packing' },
+      { label: '回収品目', to: '/guide/items' },
+    ],
+  },
+  {
+    title: 'サポート',
+    links: [
+      { label: 'FAQ', to: '/faq' },
+      { label: 'お問い合わせ', to: '/contact' },
+      { label: '申込状況の確認', to: '/orders/lookup' },
+      { label: 'データ消去', to: '/guide/data-erasure' },
+    ],
+  },
+  {
+    title: '関連情報',
+    links: [
+      { label: '会社概要', to: '/company' },
+      { label: '利用規約', to: '/terms' },
+      { label: '個人情報保護方針', to: '/privacy' },
+    ],
+  },
 ] as const
 
 export default function LandingPage() {
@@ -217,20 +275,26 @@ export default function LandingPage() {
       {/* ヘッダー：ロゴ左・オレンジ CTA 右（リネット風） */}
       <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-slate-50">
-          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between md:px-6">
             <p className="text-xs leading-6 text-slate-600 md:text-sm">
-              ご不明点がある場合は、申込前でも相談できます。対象品目や梱包方法の確認もこちらからどうぞ。
+              申込前の確認や申込後の照会は、こちらからご利用いただけます。
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-3">
+              <Link
+                to="/faq"
+                className={headerUtilityLinkClass}
+              >
+                FAQ 一覧
+              </Link>
               <Link
                 to="/contact"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                className={headerUtilityLinkClass}
               >
                 相談フォーム
               </Link>
               <a
                 href="#faq"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                className={headerUtilityLinkClass}
               >
                 よくある質問
               </a>
@@ -241,14 +305,14 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4">
             <div>
               <p className="text-xs font-medium text-slate-500 md:text-sm">
-                パソコン・ノート PC の無料回収（処分・廃棄）デモサイト
+                パソコン・小型機器の宅配回収サービス
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">
                   Recycle PC
                 </span>
                 <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
-                  認定事業者（デモ）
+                  全国対応
                 </span>
               </div>
             </div>
@@ -272,23 +336,13 @@ export default function LandingPage() {
             aria-label="サブナビゲーション"
           >
             {subNavLinks.map((link) => (
-              'to' in link ? (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="font-medium text-slate-700 underline-offset-4 hover:text-orange-600 hover:underline"
-                >
-                  {link.label}
-                </Link>
-              ) : (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="font-medium text-slate-700 underline-offset-4 hover:text-orange-600 hover:underline"
-                >
-                  {link.label}
-                </a>
-              )
+              <Link
+                key={link.to}
+                to={link.to}
+                className="font-medium text-slate-700 underline-offset-4 hover:text-orange-600 hover:underline"
+              >
+                {link.label}
+              </Link>
             ))}
           </nav>
         </div>
@@ -304,24 +358,19 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-20">
             <div className="mx-auto max-w-4xl text-center">
               <p className="mb-3 text-xs font-semibold tracking-[0.08em] text-emerald-800 md:text-sm">
-                環境省認定 × 自治体連携のパソコン回収（デモコピー）
+                全国対応のパソコン宅配回収
               </p>
               <h1
                 id="hero-heading"
                 className="mb-4 text-[30px] font-semibold leading-tight tracking-[-0.03em] text-slate-900 md:text-[46px] md:leading-[1.2]"
               >
-                豊富なパソコン回収実績。
+                パソコンを、
                 <br className="hidden sm:block" />
-                法律に基づく正しいルートで処分します。
+                手間なく正しいルートで回収。
               </h1>
-              <div className="mx-auto mb-10 max-w-xl text-left">
-                <p className="text-[17px] font-semibold leading-8 text-slate-800 md:text-[19px]">
-                  パソコンの宅配便回収にご協力ください。
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-600 md:text-[15px]">
-                  小型家電リサイクル法に基づく認定の枠組みを想定したデモ画面です。実際の料金・対象エリアは公開時に定義してください。
-                </p>
-              </div>
+              <p className="mx-auto mb-8 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+                申込み、梱包、集荷、進捗確認までをシンプルにまとめた宅配回収サービスです。
+              </p>
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
                   to="/apply/step1"
@@ -337,17 +386,17 @@ export default function LandingPage() {
                     宅配回収の流れ
                   </Link>
                   <Link
-                    to="/guide/packing"
+                    to="/guide/area-and-fees"
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                   >
-                    梱包方法
+                    対応エリア・料金条件
                   </Link>
-                  <a
-                    href="#items"
+                  <Link
+                    to="/guide/items"
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                   >
-                    回収品目・条件を見る
-                  </a>
+                    回収品目を見る
+                  </Link>
                   <Link
                     to="/orders/lookup"
                     className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
@@ -356,9 +405,11 @@ export default function LandingPage() {
                   </Link>
                 </div>
               </div>
-              <p className="mt-8 text-xs leading-relaxed text-slate-500">
-                ※ パソコン本体を含む回収の場合の料金イメージなどは、運用ポリシーに合わせて記載してください（リネット公式サイトの注意書き構成を参考）。
-              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-slate-500">
+                <span className="rounded-full bg-slate-100 px-3 py-1.5">全国対応</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1.5">注文照会対応</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1.5">データ消去案内あり</span>
+              </div>
             </div>
           </div>
         </section>
@@ -379,24 +430,27 @@ export default function LandingPage() {
                     id="free-conditions-heading"
                     className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-slate-900 md:text-3xl"
                   >
-                    パソコン回収の無料条件を先に確認できます
+                    まず確認したい無料条件
                   </h2>
                 </div>
                 <div className="px-6 py-6 md:px-8 md:py-7">
-                  <ul className="space-y-4">
+                  <div className="grid gap-3">
                     {MOCK_FREE_CONDITIONS.map((condition) => (
-                      <li key={condition} className="flex gap-4 rounded-2xl border border-emerald-100 bg-white/80 p-4">
-                        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
-                          OK
-                        </span>
-                        <span className="text-sm font-medium leading-7 text-slate-700 md:text-base">
-                          {condition}
-                        </span>
-                      </li>
+                      <div
+                        key={condition.label}
+                        className="grid gap-2 rounded-2xl border border-emerald-100 bg-white/85 p-4 md:grid-cols-[120px_minmax(0,1fr)] md:items-center"
+                      >
+                        <p className="text-xs font-semibold tracking-[0.08em] text-emerald-700 md:text-sm">
+                          {condition.label}
+                        </p>
+                        <p className="text-sm font-medium leading-7 text-slate-700 md:text-base">
+                          {condition.value}
+                        </p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                   <p className="mt-5 text-xs leading-6 text-slate-500 md:text-sm">
-                    ※ 実際の無料条件、箱数制限、重量上限、対象外品目は公開時の運用ポリシーに合わせて確定してください。
+                    箱数や重量制限、対象外品は詳細ページでご確認ください。
                   </p>
                 </div>
               </article>
@@ -407,7 +461,7 @@ export default function LandingPage() {
                     回収OK条件
                   </p>
                   <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-slate-900 md:text-3xl">
-                    処分に迷いやすい機器もまとめて確認
+                    迷いやすい品目の扱い
                   </h3>
                 </div>
                 <div className="grid gap-3 px-6 py-6 md:px-8 md:py-7">
@@ -427,6 +481,12 @@ export default function LandingPage() {
                   >
                     回収品目の詳細を見る
                   </a>
+                  <Link
+                    to="/guide/items"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                  >
+                    専用ページで確認する
+                  </Link>
                 </div>
               </article>
             </div>
@@ -446,7 +506,7 @@ export default function LandingPage() {
               パソコンのデータ消去について
             </h2>
             <p className="mx-auto mb-10 max-w-3xl text-center text-sm leading-7 text-slate-600 md:text-base">
-              renet.jp でも重要な訴求になっているため、トップ上でも簡潔に説明しておくと安心感が出ます。自己消去とおまかせ消去の違いがすぐ分かる構成にしています。
+              自己消去とおまかせ消去の違いを、申込前に簡単に確認できます。
             </p>
             <div className="grid gap-6 md:grid-cols-2">
               {MOCK_DATA_ERASURE_GUIDES.map((guide) => (
@@ -468,36 +528,40 @@ export default function LandingPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-8 flex justify-center">
+              <Link
+                to="/guide/data-erasure"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              >
+                データ消去の詳細を見る
+              </Link>
+            </div>
           </div>
         </section>
 
         {/* 信頼・注意（サイト中段の「法律」「無許可業者」系ブロックの簡易版） */}
         <section
           id="trust"
-          className="border-b border-slate-200 bg-emerald-900 py-10 text-white"
+          className="border-b border-slate-200 bg-slate-50 py-14 md:py-16"
           aria-labelledby="trust-heading"
         >
           <div className="mx-auto max-w-6xl px-4 md:px-6">
-            <h2 id="trust-heading" className="sr-only">
-              信頼情報と注意喚起
-            </h2>
-            <div className="grid gap-8 md:grid-cols-2 md:gap-12">
-              <div>
-                <h3 className="text-lg font-bold md:text-xl">
-                  法律に基づく宅配回収
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-emerald-100">
-                  国から認定を受けた事業者による、適正な回収・再資源化の流れをイメージしたコピーです。自治体との連携や認定番号の表記は、公開時に実データへ差し替えてください。
-                </p>
-              </div>
-              <div className="rounded-lg border border-emerald-700 bg-emerald-950/40 p-5">
-                <h3 className="text-lg font-bold text-amber-100">
-                  無許可の業者にご注意ください
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-emerald-100">
-                  チラシ・ネット広告・空き地回収など、不審な回収には十分ご注意ください。行政や認定事業者の情報を確認のうえ、安心できるルートをお選びください（環境省資料の構成を参考したデモ文面）。
-                </p>
-              </div>
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">安心して使うために</p>
+              <h2 id="trust-heading" className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-slate-900 md:text-3xl">
+                必要な確認先を、分かりやすくまとめています
+              </h2>
+            </div>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {MOCK_TRUST_POINTS.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{item.body}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -516,7 +580,7 @@ export default function LandingPage() {
               宅配回収の流れ
             </h2>
             <p className="mb-8 text-center text-sm leading-7 text-slate-600 md:text-base">
-              まずは事前申込み。梱包後、宅配業者がご指定の日時にお伺いします。
+              申込みから引渡しまで、3 ステップで進みます。
             </p>
             <div className="mb-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
@@ -567,57 +631,53 @@ export default function LandingPage() {
               id="items-heading"
               className="mb-2 text-center text-2xl font-bold text-slate-900 md:text-3xl"
             >
-              回収品目の目安
+              回収品目の区分
             </h2>
-            <p className="mb-10 text-center text-sm text-slate-600 md:text-base">
-              無料回収の対象例と、別途料金・別ルートが必要な例です（モック）。
+            <p className="mx-auto mb-10 max-w-3xl text-center text-sm leading-7 text-slate-600 md:text-base">
+              無料対象、条件確認が必要な内容、有料または別ルート、受付対象外の例をトップでも確認できます。
             </p>
 
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
-              <div className="overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm ring-1 ring-emerald-100">
-                <div className="border-b border-emerald-600 bg-emerald-700 px-4 py-3">
-                  <h3 className="text-sm font-bold text-white md:text-base">
-                    無料回収の対象品（例）
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {MOCK_ITEM_CATEGORIES.map((category) => (
+                <article
+                  key={category.title}
+                  className={`rounded-3xl border p-5 shadow-sm ${category.toneClass}`}
+                >
+                  <p className={`text-xs font-semibold tracking-[0.08em] ${category.labelClass}`}>
+                    回収区分
+                  </p>
+                  <h3 className="mt-2 text-base font-semibold tracking-[-0.02em]">
+                    {category.title}
                   </h3>
-                </div>
-                <ul className="divide-y divide-slate-100">
-                  {MOCK_FREE_ITEMS.map((item) => (
-                    <li
-                      key={item.name}
-                      className="flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <span className="font-semibold text-slate-900">
-                        {item.name}
-                      </span>
-                      <span className="text-xs text-slate-600 sm:text-right sm:text-sm">
-                        {item.note}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm ring-1 ring-amber-100">
-                <div className="border-b border-amber-700 bg-amber-800 px-4 py-3">
-                  <h3 className="text-sm font-bold text-white md:text-base">
-                    有料・別ルートの例
-                  </h3>
-                </div>
-                <ul className="divide-y divide-slate-100">
-                  {MOCK_SPECIAL_ROUTE_ITEMS.map((item) => (
-                    <li
-                      key={item.name}
-                      className="flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-start sm:justify-between"
-                    >
-                      <span className="font-semibold text-slate-900">
-                        {item.name}
-                      </span>
-                      <span className="text-xs text-slate-600 sm:text-right sm:text-sm">
-                        {item.note}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                  <p className="mt-3 text-sm leading-7">{category.body}</p>
+                  <ul className="mt-4 space-y-2 text-sm leading-7">
+                    {category.examples.map((example) => (
+                      <li key={example} className="flex gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />
+                        <span>{example}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-700">
+              迷いやすい品目は、トップの概要だけで判断せず、詳細ページまたは申込画面の案内をご確認ください。申込後はメールで個別条件をご案内する場合があります。
+            </div>
+            <div className="mt-8 flex justify-center">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to="/guide/items"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  回収品目の詳細ページへ
+                </Link>
+                <Link
+                  to="/guide/area-and-fees"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  料金条件を確認する
+                </Link>
               </div>
             </div>
           </div>
@@ -636,7 +696,7 @@ export default function LandingPage() {
               よくある質問
             </h2>
             <p className="mx-auto mb-10 max-w-3xl text-center text-sm leading-7 text-slate-600 md:text-base">
-              renet.jp では FAQ がかなり強い導線になっています。このデモでも、申込前に不安が残りやすいポイントだけ先に見せておく構成にしています。
+              申込前によく確認される内容だけを先にまとめています。
             </p>
             <div className="grid gap-4">
               {MOCK_FAQS.map((item, index) => (
@@ -660,6 +720,14 @@ export default function LandingPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-8 flex justify-center">
+              <Link
+                to="/faq"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              >
+                FAQ を詳しく見る
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -670,67 +738,144 @@ export default function LandingPage() {
         >
           <div className="mx-auto max-w-6xl px-4 md:px-6">
             <div className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-6 shadow-sm md:p-8">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                <div className="text-left">
+              <div className="flex flex-col gap-3 text-left md:flex-row md:items-end md:justify-between">
+                <div>
                   <p className="text-xs font-semibold tracking-[0.08em] text-orange-600">お客様サポート</p>
                   <h2
                     id="support-heading"
                     className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-slate-900 md:text-3xl"
                   >
-                    申込前の不安やご不明点はこちら
+                    迷ったら、先に確認する項目
                   </h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
-                    対象品目、梱包方法、回収日時、データ消去、申込状況などで迷った場合は、まずガイドと FAQ をご確認ください。個別の確認が必要な場合は、サポートページの相談フォームをご利用ください。
-                  </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  <Link
-                    to="/contact"
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
-                  >
-                    相談フォームへ
-                  </Link>
-                  <Link
-                    to="/orders/lookup"
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
-                  >
-                    申込状況を確認する
-                  </Link>
-                </div>
+                <Link
+                  to="/faq"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  FAQ を見る
+                </Link>
+              </div>
+              <div className="mt-6 grid gap-4 lg:grid-cols-3">
+                <article className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-semibold text-slate-900">対象品目と料金</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">回収対象、無料条件、追加費用の有無を先に確認できます。</p>
+                  <div className="mt-4">
+                    <Link
+                      to="/guide/area-and-fees"
+                      className="text-sm font-semibold text-orange-700 underline underline-offset-4 hover:text-orange-800"
+                    >
+                      料金条件を見る
+                    </Link>
+                  </div>
+                </article>
+                <article className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-semibold text-slate-900">申込後の確認</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">注文照会から、進捗や個別案内をすぐ確認できます。</p>
+                  <div className="mt-4">
+                    <Link
+                      to="/orders/lookup"
+                      className="text-sm font-semibold text-orange-700 underline underline-offset-4 hover:text-orange-800"
+                    >
+                      注文照会へ
+                    </Link>
+                  </div>
+                </article>
+                <article className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-semibold text-slate-900">個別の相談</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">特殊品目や変更依頼などは、相談フォームから連絡できます。</p>
+                  <div className="mt-4">
+                    <Link
+                      to="/contact"
+                      className="text-sm font-semibold text-orange-700 underline underline-offset-4 hover:text-orange-800"
+                    >
+                      相談フォームへ
+                    </Link>
+                  </div>
+                </article>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:hidden">
+                <Link
+                  to="/contact"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  相談フォームへ
+                </Link>
+                <Link
+                  to="/orders/lookup"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  申込状況を確認する
+                </Link>
               </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-slate-100 py-10">
-        <div className="mx-auto max-w-6xl px-4 text-center md:px-6">
-          <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-medium text-slate-600">
-            <Link to="/company" className="hover:text-orange-600 hover:underline underline-offset-4">会社概要</Link>
-            <span className="text-slate-300" aria-hidden>
-              |
-            </span>
-            <Link to="/terms" className="hover:text-orange-600 hover:underline underline-offset-4">利用規約</Link>
-            <span className="text-slate-300" aria-hidden>
-              |
-            </span>
-            <Link to="/privacy" className="hover:text-orange-600 hover:underline underline-offset-4">個人情報保護方針</Link>
-            <span className="text-slate-300" aria-hidden>
-              |
-            </span>
-            <Link to="/contact" className="hover:text-orange-600 hover:underline underline-offset-4">お問い合わせ</Link>
+      <footer className="border-t border-slate-200 bg-slate-100 py-12">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-12">
+            <div className="rounded-[28px] border border-slate-200 bg-white/70 p-6 shadow-sm">
+              <p className="text-sm font-semibold tracking-[0.02em] text-slate-900">Recycle PC</p>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
+                申込み前の確認、申込み後の照会、各種案内をまとめたパソコン回収サービスのご案内です。
+              </p>
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
+                <Link
+                  to="/apply/step1"
+                  className="font-semibold text-slate-700 underline underline-offset-4 transition hover:text-orange-700"
+                >
+                  お申込み
+                </Link>
+                <Link
+                  to="/orders/lookup"
+                  className="font-semibold text-slate-700 underline underline-offset-4 transition hover:text-orange-700"
+                >
+                  注文照会
+                </Link>
+                <Link
+                  to="/contact"
+                  className="font-semibold text-slate-700 underline underline-offset-4 transition hover:text-orange-700"
+                >
+                  お問い合わせ
+                </Link>
+              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">お問い合わせ窓口</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">平日 9:00〜18:00</p>
+                  <p className="mt-1 text-xs leading-6 text-slate-500">土日祝日・年末年始を除く</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-semibold tracking-[0.08em] text-slate-500">申込後の確認</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">メールと注文照会で確認できます</p>
+                  <p className="mt-1 text-xs leading-6 text-slate-500">お申し込み番号とメールアドレスをご用意ください</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {footerLinkGroups.map((group) => (
+                <div key={group.title}>
+                  <p className="text-sm font-semibold text-slate-900">{group.title}</p>
+                  <nav className="mt-4 flex flex-col gap-3" aria-label={group.title}>
+                    {group.links.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        className="text-sm leading-6 text-slate-600 transition hover:text-orange-600 hover:underline underline-offset-4"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </nav>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-xs leading-6 text-slate-500">
-            © Recycle PC デモ — レイアウト参考：
-            <a
-              href="https://www.renet.jp"
-              className="ml-1 font-medium text-slate-600 underline-offset-2 hover:text-orange-600 hover:underline"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              リネットジャパン公式サイト
-            </a>
-          </p>
+          <div className="mt-8 border-t border-slate-200 pt-5 text-xs leading-6 text-slate-500">
+            <p>© Recycle PC</p>
+          </div>
         </div>
       </footer>
     </div>

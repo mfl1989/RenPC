@@ -2,12 +2,12 @@ import type { HTMLAttributes } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { FieldPath } from 'react-hook-form'
 import { useFormContext, useWatch } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import type { RecycleOrderFormValues } from '../../schemas/recycleOrderSchema.ts'
 import { recycleOrderStep3Schema } from '../../schemas/recycleOrderSchema.ts'
 import { lookupAddressByPostalCode } from '../../services/zipcloudSearch.ts'
-import { StepProgress } from './StepProgress.tsx'
+import { ApplyStepShell } from './ApplyStepShell.tsx'
 
 type Step3FieldName =
   | 'customerNameKanji'
@@ -184,29 +184,17 @@ export default function Step3Customer() {
   const goBack = () => navigate('/apply/step2')
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
-      <div className="mx-auto max-w-2xl px-4 md:px-6">
-        <div className="mb-6 text-center">
-          <Link
-            to="/"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-          >
-            ← トップへ戻る
-          </Link>
-        </div>
-
-        <StepProgress step={3} />
-
-        <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-            お客様情報の入力
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 md:text-base">
-            お届け先・連絡先をご入力ください。郵便番号（7桁）を入力すると
-            ZipCloud API により都道府県・市区町村を自動入力します。
-          </p>
-        </header>
-
+    <ApplyStepShell
+      step={3}
+      title="お客様情報の入力"
+      description="お届け先およびご連絡先をご入力ください。郵便番号（7桁）を入力すると、ZipCloud API により都道府県・市区町村を自動入力します。"
+      noticeTitle="ご入力にあたっての注意事項"
+      noticeItems={[
+        '受付確認やご案内は、入力いただいたメールアドレス宛に送信されます。',
+        '郵便番号検索後も、番地・建物名・部屋番号は必ずご確認ください。',
+        '申込内容確認のため、お電話にてご連絡する場合があります。',
+      ]}
+    >
         <form onSubmit={onSubmit} className="space-y-6" noValidate>
           <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <Step3Field
@@ -230,7 +218,7 @@ export default function Step3Customer() {
                 郵便番号
               </label>
               <p className="mt-1 text-sm text-slate-600">
-                7桁・ハイフンなし（例：1000001）。入力後、自動で住所を検索します。
+                7 桁・ハイフンなし（例: 1000001）。入力後、自動で住所を検索します。
               </p>
               <input
                 id="step3-postalCode"
@@ -310,7 +298,7 @@ export default function Step3Customer() {
               name="email"
               label="メールアドレス"
               type="email"
-              hint="受付確認やご連絡に使用します。"
+              hint="受付確認、進行状況のご案内および必要なご連絡に使用します。"
               register={register}
               error={errors.email?.message}
             />
@@ -332,7 +320,6 @@ export default function Step3Customer() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ApplyStepShell>
   )
 }

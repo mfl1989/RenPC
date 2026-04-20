@@ -2,13 +2,12 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import {
-    type DataErasureOption,
-    getBaseLogisticsFeeHint,
-    getDataErasureFeeYen,
-    type RecycleOrderFormValues,
-    recycleOrderStep1Schema,
+  calculateOrderPricing,
+  type DataErasureOption,
+  type RecycleOrderFormValues,
+  recycleOrderStep1Schema,
 } from '../../schemas/recycleOrderSchema.ts'
-import { StepProgress } from './StepProgress.tsx'
+import { ApplyStepShell } from './ApplyStepShell.tsx'
 
 function CountStepper({
   id,
@@ -87,11 +86,21 @@ export default function Step1Items() {
   } = useFormContext<RecycleOrderFormValues>()
 
   const pcCount = useWatch({ control, name: 'pcCount' })
+  const monitorCount = useWatch({ control, name: 'monitorCount' })
+  const smallApplianceBoxCount = useWatch({ control, name: 'smallApplianceBoxCount' })
   const dataErasure = useWatch({ control, name: 'dataErasureOption' })
+  const cardboardDeliveryRequested = useWatch({ control, name: 'cardboardDeliveryRequested' })
 
-  const baseFee = getBaseLogisticsFeeHint(pcCount)
-  const eraseFee = getDataErasureFeeYen(dataErasure)
-  const subtotalHint = baseFee.isWaived ? eraseFee : baseFee.amountYenTaxIn + eraseFee
+  const pricing = calculateOrderPricing({
+    pcCount,
+    dataErasureOption: dataErasure,
+    cardboardDeliveryRequested,
+  })
+  const hasAnySelectedItem = pcCount + monitorCount + smallApplianceBoxCount > 0
+  const hasPcItems = pcCount > 0
+  const requiresSpecialConfirmation = pcCount === 0 && (monitorCount > 0 || smallApplianceBoxCount > 0)
+  const hasMonitorItems = monitorCount > 0
+  const hasSmallApplianceItems = smallApplianceBoxCount > 0
 
   const onSubmit = handleSubmit((values) => {
     clearErrors()
@@ -109,28 +118,17 @@ export default function Step1Items() {
   })
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
-      <div className="mx-auto max-w-3xl px-4 md:px-6">
-        <div className="mb-6 text-center">
-          <Link
-            to="/"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-          >
-            ← トップへ戻る
-          </Link>
-        </div>
-
-        <StepProgress step={1} />
-
-        <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-            回収品目の入力
-          </h1>
-          <p className="mt-2 text-sm leading-7 text-slate-600 md:text-base">
-            回収する台数と、データ消去の方法を選択してください。
-          </p>
-        </header>
-
+    <ApplyStepShell
+      step={1}
+      title="回収品目の入力"
+      description="回収を希望する品目数と、データ消去の対応方法を選択してください。"
+      noticeTitle="ご入力前の確認事項"
+      noticeItems={[
+        'パソコン本体を含む申込を基本としてご案内しています。',
+        'モニターのみ、小型家電のみ、複数箱になる申込は条件確認が必要な場合があります。',
+        '危険物、電池のみの送付、著しい破損がある機器は受付対象外となる場合があります。',
+      ]}
+    >
         <form onSubmit={onSubmit} className="space-y-6" noValidate>
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 border-b border-slate-100 pb-4">
@@ -138,7 +136,7 @@ export default function Step1Items() {
                 回収品目
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                各項目の数量を入力してください。数量の増減は右側のボタンから操作できます。
+                各項目の数量をご入力ください。数量の増減は右側のボタンから操作できます。
               </p>
             </div>
 
@@ -188,6 +186,93 @@ export default function Step1Items() {
                 )}
               />
             </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <article className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm leading-7 text-emerald-950">
+                <p className="text-xs font-semibold tracking-[0.08em] text-emerald-700">無料対象の目安</p>
+                <p className="mt-2 font-semibold">パソコン本体を含む申込</p>
+                <p className="mt-2">ノート、デスクトップ、一体型パソコンは基本対象です。周辺機器も同梱しやすい構成です。</p>
+              </article>
+              <article className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm leading-7 text-amber-950">
+                <p className="text-xs font-semibold tracking-[0.08em] text-amber-700">条件確認が必要</p>
+                <p className="mt-2 font-semibold">モニターのみ・小型家電のみ</p>
+                <p className="mt-2">通常申込と料金や受付条件が異なる場合があります。確認画面と受付後の案内をご確認ください。</p>
+              </article>
+              <article className="rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm leading-7 text-red-950">
+                <p className="text-xs font-semibold tracking-[0.08em] text-red-700">受付対象外の例</p>
+                <p className="mt-2 font-semibold">危険物・電池のみの送付</p>
+                <p className="mt-2">液漏れ、膨張、著しい破損がある機器は配送規定上お受けできない場合があります。</p>
+              </article>
+            </div>
+
+            {hasAnySelectedItem ? (
+              <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm leading-7 text-sky-950">
+                <p className="text-xs font-semibold tracking-[0.08em] text-sky-700">現在の申込内容の見方</p>
+                <p className="mt-2 font-semibold">
+                  {hasPcItems
+                    ? 'パソコン本体を含む申込として進めています。'
+                    : 'パソコン本体を含まない申込として確認が必要な可能性があります。'}
+                </p>
+                <p className="mt-2">
+                  {hasPcItems
+                    ? 'パソコン本体が含まれているため、通常の回収条件で案内しやすい内容です。'
+                    : 'モニターのみ、小型家電のみ等の内容は、基本料金や受付条件が通常申込と異なる場合があります。'}
+                </p>
+                {hasMonitorItems || hasSmallApplianceItems ? (
+                  <p className="mt-2">
+                    {hasMonitorItems && hasSmallApplianceItems
+                      ? 'モニターと小型家電を含むため、梱包条件と箱数の確認もあわせて行う想定です。'
+                      : hasMonitorItems
+                        ? 'モニターを含むため、液晶か CRT かによって案内条件が変わる場合があります。'
+                        : '小型家電を含むため、箱数や内容に応じて条件確認が必要な場合があります。'}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {requiresSpecialConfirmation ? (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-950">
+                <p className="text-xs font-semibold tracking-[0.08em] text-amber-700">条件付き受付の可能性があります</p>
+                <p className="mt-2 font-semibold">
+                  現在の入力内容は、パソコン本体を含まない申込として扱われる可能性があります。
+                </p>
+                <p className="mt-2">
+                  モニターのみ、小型家電のみ等の回収は、基本料金や受付条件が通常申込と異なる場合があります。正式条件は確認画面と受付後のご案内をご確認ください。
+                </p>
+                <div className="mt-3">
+                  <Link
+                    to="/guide/items"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:-translate-y-px hover:bg-amber-100"
+                  >
+                    回収品目の条件を見る
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
+            {hasMonitorItems ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
+                <p className="font-semibold text-slate-900">モニターを含むお申し込みについて</p>
+                <p className="mt-2">
+                  液晶モニターは通常の対象品として案内できる構成ですが、CRT モニターなど特殊処理が必要な品目は追加料金または別案内となる場合があります。
+                </p>
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                to="/guide/items"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              >
+                回収品目の詳細を見る
+              </Link>
+              <Link
+                to="/guide/area-and-fees"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              >
+                料金条件を見る
+              </Link>
+            </div>
           </section>
 
           <fieldset className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -195,7 +280,7 @@ export default function Step1Items() {
               データ消去方法
             </legend>
             <p className="mb-4 text-sm leading-6 text-slate-600">
-              発送前にご自身で対応するか、当社のおまかせ消去サービスを利用するかを選択してください。
+              発送前にお客様ご自身で対応するか、当社のおまかせ消去サービスを利用するかを選択してください。
             </p>
             <Controller
               name="dataErasureOption"
@@ -219,7 +304,7 @@ export default function Step1Items() {
                         </span>
                       </span>
                       <span className="mt-1 block text-sm leading-6 text-slate-600">
-                        発送前にご自身で消去作業を行っていただきます。
+                        発送前に、お客様ご自身で消去作業を実施していただきます。
                       </span>
                     </span>
                   </label>
@@ -242,7 +327,7 @@ export default function Step1Items() {
                         </span>
                       </span>
                       <span className="mt-1 block text-sm leading-6 text-slate-600">
-                        専門工程でデータ消去を行う想定のオプションです。料金の目安は 3,000 円です。
+                        専門工程でデータ消去を行う想定の有料オプションです。料金の目安は 3,000 円です。
                       </span>
                     </span>
                   </label>
@@ -265,31 +350,40 @@ export default function Step1Items() {
             </h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-emerald-900">
               <li className="flex justify-between gap-4 border-b border-emerald-200/80 pb-2">
-                <span>宅配枠・基本料金（パソコン1台以上で免除イメージ）</span>
+                <span>宅配枠・基本料金（パソコン本体を含む申込で免除）</span>
                 <span className="shrink-0 font-semibold tabular-nums">
-                  {baseFee.isWaived
+                  {!hasAnySelectedItem
                     ? '0 円'
-                    : `${baseFee.amountYenTaxIn.toLocaleString()} 円（税込） / 箱`}
+                    : pricing.baseLogisticsFee.isWaived
+                    ? '0 円'
+                    : `${pricing.baseLogisticsFee.amountYenTaxIn.toLocaleString()} 円（税込）`}
                 </span>
               </li>
               <li className="flex justify-between gap-4 border-b border-emerald-200/80 pb-2">
                 <span>データ消去サービス</span>
                 <span className="shrink-0 font-semibold tabular-nums">
-                  {eraseFee > 0
-                    ? `+${eraseFee.toLocaleString()} 円`
+                  {hasAnySelectedItem && pricing.dataErasureFee > 0
+                    ? `+${pricing.dataErasureFee.toLocaleString()} 円`
+                    : '0 円'}
+                </span>
+              </li>
+              <li className="flex justify-between gap-4 border-b border-emerald-200/80 pb-2">
+                <span>段ボール事前送付</span>
+                <span className="shrink-0 font-semibold tabular-nums">
+                  {hasAnySelectedItem && pricing.cardboardDeliveryFee > 0
+                    ? `+${pricing.cardboardDeliveryFee.toLocaleString()} 円`
                     : '0 円'}
                 </span>
               </li>
               <li className="flex items-baseline justify-end gap-3 pt-2 font-bold text-right">
                 <span>小計（参考）</span>
                 <span className="shrink-0 tabular-nums text-lg">
-                  {subtotalHint.toLocaleString()} 円
+                  {(hasAnySelectedItem ? pricing.subtotalYen : 0).toLocaleString()} 円
                 </span>
               </li>
             </ul>
             <p className="mt-3 text-xs leading-relaxed text-emerald-800">
-              ※
-              正式な料金は Step 4 の確認画面およびバックエンド計算に準じます。モニターのみ等のケースは別条件となる場合があります。
+              ※ 正式な料金は Step 4 の確認画面および受付内容に基づく計算結果に準じます。特殊品目や対象外品は別条件となる場合があります。
             </p>
           </section>
 
@@ -308,7 +402,6 @@ export default function Step1Items() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ApplyStepShell>
   )
 }

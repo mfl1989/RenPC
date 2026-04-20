@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class ContactInquiryNotificationService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
@@ -45,22 +46,34 @@ public class ContactInquiryNotificationService {
     }
 
     private void sendMail(String to, String subject, String body) {
+        String recipient = trimToNull(to);
+        if (recipient == null) {
+            log.warn("送信先メールアドレスが未設定のため問い合わせ通知メールを送信できません。to={}", to);
+            return;
+        }
+
         if (!properties.isEnabled()) {
-            log.info("問い合わせ通知メールは無効です。to={}", to);
+            log.info("問い合わせ通知メールは無効です。to={}", recipient);
             return;
         }
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
-            log.warn("JavaMailSender が未設定のため問い合わせ通知メールを送信できません。to={}", to);
+            log.warn("JavaMailSender が未設定のため問い合わせ通知メールを送信できません。to={}", recipient);
             return;
         }
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setTo(to);
-            helper.setFrom(resolveFromAddress(), trimToNull(properties.getFromName()));
+            helper.setTo(recipient);
+            String fromAddress = resolveFromAddress();
+            String fromName = trimToNull(properties.getFromName());
+            if (fromName != null) {
+                helper.setFrom(fromAddress, fromName);
+            } else {
+                helper.setFrom(fromAddress);
+            }
             String replyTo = trimToNull(properties.getReplyTo());
             if (replyTo != null) {
                 helper.setReplyTo(replyTo, defaultSupportDeskName());
@@ -68,9 +81,9 @@ public class ContactInquiryNotificationService {
             helper.setSubject(subject);
             helper.setText(body, false);
             mailSender.send(message);
-            log.info("問い合わせ通知メールを送信しました。to={}", to);
+            log.info("問い合わせ通知メールを送信しました。to={}", recipient);
         } catch (Exception ex) {
-            log.warn("問い合わせ通知メールの送信に失敗しました。to={}", to, ex);
+            log.warn("問い合わせ通知メールの送信に失敗しました。to={}", recipient, ex);
         }
     }
 

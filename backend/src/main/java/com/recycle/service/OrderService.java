@@ -47,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class OrderService {
 
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
@@ -54,6 +55,9 @@ public class OrderService {
             .withZone(JST);
     private static final DateTimeFormatter COLLECTION_DATE_FORMAT = DateTimeFormatter.ofPattern("uuuu年M月d日",
             Locale.JAPAN);
+    private static final int BASE_LOGISTICS_FEE_YEN_TAX_IN = 1848;
+    private static final int DATA_ERASURE_FEE_YEN = 3000;
+    private static final int CARDBOARD_DELIVERY_FEE_YEN = 550;
 
     private static final Map<String, String> TIME_SLOT_LABELS = Map.ofEntries(
             Map.entry("unspecified", "指定なし"),
@@ -64,8 +68,7 @@ public class OrderService {
             Map.entry("t18_21", "18時〜21時"));
 
     private static final Map<String, String> DATA_ERASURE_OPTION_LABELS = Map.ofEntries(
-            Map.entry("none", "希望しない"),
-            Map.entry("self", "自分で消去予定"),
+            Map.entry("self_erase_free", "ご自身で事前に消去する"),
             Map.entry("full_service_paid", "おまかせ消去サービスを利用"));
 
     private static final Map<OrderStatus, String> ORDER_STATUS_LABELS = Map.ofEntries(
@@ -285,7 +288,7 @@ public class OrderService {
                 .orderStatus(OrderStatus.RECEIVED)
                 .collectionDate(collectionDate)
                 .collectionTimeSlot(dto.getTimeSlot())
-                .totalAmount(0)
+                .totalAmount(calculateTotalAmount(dto))
                 .pcCount(dto.getPcCount())
                 .monitorCount(dto.getMonitorCount())
                 .smallApplianceBoxCount(dto.getSmallApplianceBoxCount())
@@ -430,12 +433,14 @@ public class OrderService {
                 .orderId(order.getId())
                 .contactName(order.getCustomerNameKanji())
                 .email(order.getEmail())
+                .orderStatusCode(order.getOrderStatus().name())
                 .orderStatus(formatOrderStatus(order.getOrderStatus()))
                 .progressSummary(formatOrderProgressSummary(order.getOrderStatus()))
                 .collectionDate(order.getCollectionDate().format(COLLECTION_DATE_FORMAT))
                 .collectionTimeSlot(formatTimeSlot(order.getCollectionTimeSlot()))
                 .createdAt(formatCreatedAt(order.getCreatedAt()))
                 .lastUpdatedAt(formatLastUpdatedAt(order))
+                .totalAmount(order.getTotalAmount())
                 .pcCount(order.getPcCount())
                 .monitorCount(order.getMonitorCount())
                 .smallApplianceBoxCount(order.getSmallApplianceBoxCount())
@@ -443,6 +448,20 @@ public class OrderService {
                 .cardboardDeliveryLabel(formatCardboardDelivery(order.isCardboardDeliveryRequested()))
                 .customerNote(order.getCustomerNote())
                 .build();
+    }
+
+    private static int calculateTotalAmount(OrderSubmitRequestDTO dto) {
+        int total = 0;
+        if (dto.getPcCount() == null || dto.getPcCount() <= 0) {
+            total += BASE_LOGISTICS_FEE_YEN_TAX_IN;
+        }
+        if ("full_service_paid".equals(dto.getDataErasureOption())) {
+            total += DATA_ERASURE_FEE_YEN;
+        }
+        if (Boolean.TRUE.equals(dto.getCardboardDeliveryRequested())) {
+            total += CARDBOARD_DELIVERY_FEE_YEN;
+        }
+        return total;
     }
 
     private Page<RecycleOrder> searchAdminOrders(String keyword, Pageable pageable) {

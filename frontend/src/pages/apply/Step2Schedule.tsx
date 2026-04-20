@@ -1,10 +1,10 @@
 import type { FieldPath } from 'react-hook-form'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { applyZodIssuesToForm } from '../../lib/zodToRhfErrors.ts'
 import type { RecycleOrderFormValues } from '../../schemas/recycleOrderSchema.ts'
 import { recycleOrderStep2Schema } from '../../schemas/recycleOrderSchema.ts'
-import { StepProgress } from './StepProgress.tsx'
+import { ApplyStepShell } from './ApplyStepShell.tsx'
 
 export default function Step2Schedule() {
   const navigate = useNavigate()
@@ -48,28 +48,17 @@ export default function Step2Schedule() {
       : 'border-slate-300 focus:border-orange-400 focus:ring-orange-200'
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fffaf5_0%,#f8fafc_22%,#f8fafc_100%)] pb-16 pt-8 font-sans text-slate-800">
-      <div className="mx-auto max-w-2xl px-4 md:px-6">
-        <div className="mb-6 text-center">
-          <Link
-            to="/"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-          >
-            ← トップへ戻る
-          </Link>
-        </div>
-
-        <StepProgress step={2} />
-
-        <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-            回収日時の指定
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 md:text-base">
-            回収希望日と時間帯を選択してください。
-          </p>
-        </header>
-
+    <ApplyStepShell
+      step={2}
+      title="回収日時の指定"
+      description="回収希望日と時間帯をご指定ください。"
+      noticeTitle="日時指定に関するご案内"
+      noticeItems={[
+        'ご希望日時は受付時点の目安であり、配送会社の事情により前後する場合があります。',
+        '段ボールの事前送付を希望する場合は、余裕をもった日程でお申し込みください。',
+        '正式な手配内容は、申込完了後のご案内にてご確認ください。',
+      ]}
+    >
         <form onSubmit={onSubmit} className="space-y-6" noValidate>
           <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <div>
@@ -80,7 +69,7 @@ export default function Step2Schedule() {
                 回収希望日
               </label>
               <p className="mt-1 text-sm text-slate-600">
-                本日以降の日付をお選びください。
+                本日以降の日付を選択してください。
               </p>
               <input
                 id="collection-date"
@@ -183,7 +172,6 @@ export default function Step2Schedule() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ApplyStepShell>
   )
 }

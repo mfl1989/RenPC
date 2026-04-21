@@ -37,6 +37,7 @@ import com.recycle.exception.ResourceNotFoundException;
 import com.recycle.repository.ContactRepository;
 import com.recycle.repository.OrderInternalNoteHistoryRepository;
 import com.recycle.repository.OrderStatusHistoryRepository;
+import com.recycle.repository.OrderSubmissionIdempotencyRepository;
 import com.recycle.repository.RecycleOrderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +46,8 @@ class OrderServiceTest {
 
         @Mock
         private ContactRepository contactRepository;
+        @Mock
+        private OrderSubmissionIdempotencyRepository orderSubmissionIdempotencyRepository;
         @Mock
         private RecycleOrderRepository recycleOrderRepository;
         @Mock
@@ -59,7 +62,8 @@ class OrderServiceTest {
         @BeforeEach
         void setUp() {
                 Clock fixedClock = Clock.fixed(Instant.parse("2026-04-15T00:30:00Z"), ZoneId.of("Asia/Tokyo"));
-                orderService = new OrderService(contactRepository, recycleOrderRepository,
+                orderService = new OrderService(contactRepository, orderSubmissionIdempotencyRepository,
+                                recycleOrderRepository,
                                 orderInternalNoteHistoryRepository,
                                 orderStatusHistoryRepository,
                                 orderNotificationService,
@@ -70,6 +74,7 @@ class OrderServiceTest {
         @Test
         void submitOrder_sendsSubmissionNotification() {
                 com.recycle.dto.OrderSubmitRequestDTO dto = com.recycle.dto.OrderSubmitRequestDTO.builder()
+                                .idempotencyKey("11111111-1111-4111-8111-111111111111")
                                 .customerNameKanji("田中一郎")
                                 .customerNameKana("タナカイチロウ")
                                 .email("test@example.com")
@@ -90,13 +95,83 @@ class OrderServiceTest {
                 RecycleOrder savedOrder = buildOrder();
 
                 when(contactRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+                when(orderSubmissionIdempotencyRepository.tryReserve("11111111-1111-4111-8111-111111111111"))
+                                .thenReturn(true);
                 when(contactRepository.save(any(Contact.class))).thenReturn(contact);
                 when(recycleOrderRepository.save(any(RecycleOrder.class))).thenReturn(savedOrder);
 
                 orderService.submitOrder(dto);
 
+                verify(orderSubmissionIdempotencyRepository).attachOrder("11111111-1111-4111-8111-111111111111", 1L);
                 verify(orderNotificationService).sendOrderSubmitted(any(RecycleOrder.class), eq("受付済"),
                                 any(String.class));
+        }
+
+        @Test
+        void submitOrder_returnsExistingOrderWhenIdempotencyKeyAlreadyCompleted() {
+                com.recycle.dto.OrderSubmitRequestDTO dto = com.recycle.dto.OrderSubmitRequestDTO.builder()
+                                .idempotencyKey("22222222-2222-4222-8222-222222222222")
+                                .customerNameKanji("田中一郎")
+                                .customerNameKana("タナカイチロウ")
+                                .email("test@example.com")
+                                .phone("090-1234-5678")
+                                .postalCode("1350061")
+                                .prefecture("東京都")
+                                .city("江東区")
+                                .addressLine1("豊洲1-2-3")
+                                .collectionDate("2026-04-20")
+                                .timeSlot("t14_16")
+                                .pcCount(1)
+                                .monitorCount(0)
+                                .smallApplianceBoxCount(0)
+                                .dataErasureOption("full_service_paid")
+                                .cardboardDeliveryRequested(false)
+                                .build();
+
+                when(orderSubmissionIdempotencyRepository.findCompletedOrderId("22222222-2222-4222-8222-222222222222"))
+                                .thenReturn(Optional.of(99L));
+
+                var result = orderService.submitOrder(dto);
+
+                assertEquals(99L, result.getOrderId());
+                verify(contactRepository, never()).save(any(Contact.class));
+                verify(recycleOrderRepository, never()).save(any(RecycleOrder.class));
+                verify(orderNotificationService, never()).sendOrderSubmitted(any(), any(), any());
+        }
+
+        @Test
+        void submitOrder_rejectsWhenSameIdempotencyKeyIsStillProcessing() {
+                com.recycle.dto.OrderSubmitRequestDTO dto = com.recycle.dto.OrderSubmitRequestDTO.builder()
+                                .idempotencyKey("33333333-3333-4333-8333-333333333333")
+                                .customerNameKanji("田中一郎")
+                                .customerNameKana("タナカイチロウ")
+                                .email("test@example.com")
+                                .phone("090-1234-5678")
+                                .postalCode("1350061")
+                                .prefecture("東京都")
+                                .city("江東区")
+                                .addressLine1("豊洲1-2-3")
+                                .collectionDate("2026-04-20")
+                                .timeSlot("t14_16")
+                                .pcCount(1)
+                                .monitorCount(0)
+                                .smallApplianceBoxCount(0)
+                                .dataErasureOption("full_service_paid")
+                                .cardboardDeliveryRequested(false)
+                                .build();
+
+                when(orderSubmissionIdempotencyRepository.tryReserve("33333333-3333-4333-8333-333333333333"))
+                                .thenReturn(false);
+                when(orderSubmissionIdempotencyRepository.hasActiveReservation("33333333-3333-4333-8333-333333333333"))
+                                .thenReturn(true);
+
+                IllegalArgumentException exception = assertThrows(
+                                IllegalArgumentException.class,
+                                () -> orderService.submitOrder(dto));
+
+                assertEquals("同一申込を処理中です。完了画面が表示されるまでそのままお待ちください", exception.getMessage());
+                verify(contactRepository, never()).save(any(Contact.class));
+                verify(recycleOrderRepository, never()).save(any(RecycleOrder.class));
         }
 
         @Test
@@ -224,6 +299,8 @@ class OrderServiceTest {
                 assertEquals("admin", order.getPricingConfirmedBy());
                 assertEquals("到着品の内容確認の結果、正式料金を確定。", order.getPricingConfirmationNote());
                 assertTrue(order.getPricingConfirmedAt() != null);
+                verify(orderNotificationService).sendOrderPricingConfirmed(any(RecycleOrder.class), eq("受付済"),
+                                eq("正式料金が確定しました。注文照会ページで金額をご確認いただけます。"));
         }
 
         @Test

@@ -24,10 +24,32 @@ const KATAKANA_REGEX = /^[ァ-ヶー・\u3000\s]+$/u
 
 const itemCount = z.number().int().min(0).max(99)
 
+function createUuidV4(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+
+  const bytes = new Uint8Array(16)
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes)
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256)
+    }
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 /**
  * フィールド定義のみ（refine 前のベース）
  */
 const recycleOrderFields = {
+  idempotencyKey: z.uuid('送信識別子の形式が不正です'),
   /** パソコン台数 */
   pcCount: itemCount,
   /** モニター台数 */
@@ -171,24 +193,27 @@ export const recycleOrderStep4Schema = z
 /**
  * 初期値（全ステップで共有）
  */
-export const defaultRecycleOrderValues: RecycleOrderFormValues = {
-  pcCount: 0,
-  monitorCount: 0,
-  smallApplianceBoxCount: 0,
-  dataErasureOption: 'self_erase_free',
-  collectionDate: '',
-  timeSlot: 'unspecified',
-  cardboardDeliveryRequested: false,
-  customerNameKanji: '',
-  customerNameKana: '',
-  postalCode: '',
-  prefecture: '',
-  city: '',
-  addressLine1: '',
-  addressLine2: '',
-  phone: '',
-  email: '',
-  termsAccepted: false,
+export function createDefaultRecycleOrderValues(): RecycleOrderFormValues {
+  return {
+    idempotencyKey: createUuidV4(),
+    pcCount: 0,
+    monitorCount: 0,
+    smallApplianceBoxCount: 0,
+    dataErasureOption: 'self_erase_free',
+    collectionDate: '',
+    timeSlot: 'unspecified',
+    cardboardDeliveryRequested: false,
+    customerNameKanji: '',
+    customerNameKana: '',
+    postalCode: '',
+    prefecture: '',
+    city: '',
+    addressLine1: '',
+    addressLine2: '',
+    phone: '',
+    email: '',
+    termsAccepted: false,
+  }
 }
 
 /** 税込の宅配枠基本料金モック（パソコン非含有時の目安） */

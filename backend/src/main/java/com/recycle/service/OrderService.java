@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ import com.recycle.exception.ResourceNotFoundException;
 import com.recycle.repository.ContactRepository;
 import com.recycle.repository.OrderInternalNoteHistoryRepository;
 import com.recycle.repository.OrderStatusHistoryRepository;
+import com.recycle.repository.OrderSubmissionIdempotencyRepository;
 import com.recycle.repository.RecycleOrderRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -91,6 +93,7 @@ public class OrderService {
             Map.entry(OrderStatus.CANCELLED, "お申し込みはキャンセル扱いとなっています。"));
 
     private final ContactRepository contactRepository;
+    private final OrderSubmissionIdempotencyRepository orderSubmissionIdempotencyRepository;
     private final RecycleOrderRepository recycleOrderRepository;
     private final OrderInternalNoteHistoryRepository orderInternalNoteHistoryRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
@@ -105,6 +108,24 @@ public class OrderService {
      */
     @Transactional
     public OrderSubmitResponseDTO submitOrder(OrderSubmitRequestDTO dto) {
+        String idempotencyKey = normalizeIdempotencyKey(dto.getIdempotencyKey());
+        Optional<Long> existingOrderId = orderSubmissionIdempotencyRepository.findCompletedOrderId(idempotencyKey);
+        if (existingOrderId.isPresent()) {
+            log.info("回収申込の重複送信を検知したため既存注文を返します。orderId={}", existingOrderId.get());
+            return OrderSubmitResponseDTO.builder().orderId(existingOrderId.get()).build();
+        }
+
+        if (!orderSubmissionIdempotencyRepository.tryReserve(idempotencyKey)) {
+            Optional<Long> reservedOrderId = orderSubmissionIdempotencyRepository.findCompletedOrderId(idempotencyKey);
+            if (reservedOrderId.isPresent()) {
+                log.info("回収申込の重複送信を検知したため既存注文を返します。orderId={}", reservedOrderId.get());
+                return OrderSubmitResponseDTO.builder().orderId(reservedOrderId.get()).build();
+            }
+            if (orderSubmissionIdempotencyRepository.hasActiveReservation(idempotencyKey)) {
+                throw new IllegalArgumentException("同一申込を処理中です。完了画面が表示されるまでそのままお待ちください");
+            }
+        }
+
         String email = dto.getEmail().trim();
         Contact contact = contactRepository
                 .findByEmail(email)
@@ -115,6 +136,7 @@ public class OrderService {
 
         RecycleOrder order = buildOrder(savedContact, dto);
         RecycleOrder saved = recycleOrderRepository.save(order);
+        orderSubmissionIdempotencyRepository.attachOrder(idempotencyKey, saved.getId());
 
         orderNotificationService.sendOrderSubmitted(
                 saved,
@@ -213,6 +235,10 @@ public class OrderService {
         order.setPricingConfirmationNote(confirmationNote);
 
         RecycleOrder saved = recycleOrderRepository.save(order);
+        orderNotificationService.sendOrderPricingConfirmed(
+                saved,
+                formatOrderStatus(saved.getOrderStatus()),
+                "正式料金が確定しました。注文照会ページで金額をご確認いただけます。");
         log.info("正式料金を確定しました。orderId={}, finalAmount={}, operator={}", saved.getId(),
                 saved.getFinalAmount(), saved.getPricingConfirmedBy());
     }
@@ -358,6 +384,14 @@ public class OrderService {
         }
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static String normalizeIdempotencyKey(String key) {
+        String normalized = trimToNull(key);
+        if (normalized == null) {
+            throw new IllegalArgumentException("送信識別子がありません。画面を再読み込みしてからもう一度お試しください");
+        }
+        return normalized;
     }
 
     /** DB 規範に合わせ、電話番号から数字以外を除去して保存する。 */

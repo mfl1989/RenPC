@@ -20,6 +20,7 @@ const TIME_SLOT_LABEL: Record<TimeSlotOption, string> = {
 
 /** 確認・ログ用の日本語ラベル（キーはフォーム／API フィールド名） */
 const FIELD_LABEL_JA: Record<keyof RecycleOrderFormValues, string> = {
+  idempotencyKey: '送信識別子',
   pcCount: 'パソコン台数',
   monitorCount: 'モニター台数',
   smallApplianceBoxCount: '小型家電の箱数',
@@ -71,6 +72,9 @@ export function logValidatedRecycleOrderJa(data: RecycleOrderFormValues): void {
   const 日本語サマリー: Record<string, string | number> = {}
 
   for (const key of Object.keys(data) as (keyof RecycleOrderFormValues)[]) {
+    if (key === 'idempotencyKey') {
+      continue
+    }
     const label = FIELD_LABEL_JA[key]
     日本語サマリー[label] = formatValueJa(key, data[key])
   }

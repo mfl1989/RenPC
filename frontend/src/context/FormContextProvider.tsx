@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react'
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form'
 import {
-  defaultRecycleOrderValues,
-  type RecycleOrderFormValues,
+    createDefaultRecycleOrderValues,
+    type RecycleOrderFormValues,
 } from '../schemas/recycleOrderSchema.ts'
 
 /**
@@ -12,7 +12,7 @@ import {
  */
 export function FormContextProvider({ children }: { children: ReactNode }) {
   const methods = useForm<RecycleOrderFormValues>({
-    defaultValues: defaultRecycleOrderValues,
+    defaultValues: createDefaultRecycleOrderValues(),
     mode: 'onBlur',
   })
 

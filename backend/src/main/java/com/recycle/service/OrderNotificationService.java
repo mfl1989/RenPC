@@ -40,6 +40,13 @@ public class OrderNotificationService {
                 buildStatusUpdatedBody(order, statusLabel, progressSummary));
     }
 
+    public void sendOrderPricingConfirmed(RecycleOrder order, String statusLabel, String progressSummary) {
+        sendMail(
+                order,
+                subjectPrefix() + "正式料金確定のお知らせ",
+                buildPricingConfirmedBody(order, statusLabel, progressSummary));
+    }
+
     private void sendMail(RecycleOrder order, String subject, String body) {
         String recipient = trimToNull(order.getEmail());
         if (recipient == null) {
@@ -98,6 +105,17 @@ public class OrderNotificationService {
                 + commonBody(order, statusLabel, progressSummary)
                 + "\n最新状況は注文照会ページからもご確認いただけます。\n"
                 + "本メールと行き違いで追加のご案内をお送りする場合があります。\n\n"
+                + buildFooter();
+    }
+
+    private String buildPricingConfirmedBody(RecycleOrder order, String statusLabel, String progressSummary) {
+        return safeContactName(order) + " 様\n\n"
+                + "お申し込みの正式料金が確定しました。内容は以下のとおりです。\n\n"
+                + commonBody(order, statusLabel, progressSummary)
+                + "正式料金: " + formatAmount(order.getFinalAmount()) + "\n"
+                + buildPricingConfirmationNoteBlock(order)
+                + "最新状況は注文照会ページからもご確認いただけます。\n"
+                + "ご不明点がある場合は、お問い合わせフォームよりご連絡ください。\n\n"
                 + buildFooter();
     }
 
@@ -170,6 +188,13 @@ public class OrderNotificationService {
         return "個別案内: " + order.getCustomerNote().trim() + "\n";
     }
 
+    private static String buildPricingConfirmationNoteBlock(RecycleOrder order) {
+        if (order.getPricingConfirmationNote() == null || order.getPricingConfirmationNote().isBlank()) {
+            return "";
+        }
+        return "料金確定メモ: " + order.getPricingConfirmationNote().trim() + "\n";
+    }
+
     private static String buildItemSummary(RecycleOrder order) {
         return "パソコン " + defaultZero(order.getPcCount()) + "台 / モニター " + defaultZero(order.getMonitorCount())
                 + "台 / 小型家電ダンボール " + defaultZero(order.getSmallApplianceBoxCount()) + "箱";
@@ -177,6 +202,13 @@ public class OrderNotificationService {
 
     private static int defaultZero(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private static String formatAmount(Integer amount) {
+        if (amount == null) {
+            return "未確定";
+        }
+        return String.format(java.util.Locale.JAPAN, "%,d円", amount);
     }
 
     private static String safeContactName(RecycleOrder order) {

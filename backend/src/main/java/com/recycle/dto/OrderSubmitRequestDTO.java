@@ -21,6 +21,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderSubmitRequestDTO {
 
+        @NotBlank(message = "送信識別子がありません。画面を再読み込みしてからもう一度お試しください")
+        @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$", message = "送信識別子の形式が不正です")
+        private String idempotencyKey;
+
         @NotNull(message = "パソコン台数を入力してください")
         @Min(value = 0, message = "パソコン台数は0以上99以下で入力してください")
         @Max(value = 99, message = "パソコン台数は0以上99以下で入力してください")
